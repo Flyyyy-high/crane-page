@@ -1,1 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>丹顶鹤 · 鸟类科普</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', system-ui, -apple-system, 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        /* PC端外层缩放容器 - 严格788x492，缩放1.2倍 */
+        @media (min-width: 769px) {
+            .app-wrapper {
+                transform: scale(1.2);
+                transform-origin: center center;
+                width: 788px;
+                max-width: 788px;
+                margin: 0 auto;
+            }
+            .main-card {
+                width: 788px !important;
+                height: 492px !important;
+            }
+            .nav-card {
+                width: 788px !important;
+                height: 112px !important;
+            }
+            .ruler-compare-pc,
+            .ruler-intro-pc {
+                left: 30px !important;
+            }
+            .species-container {
+                margin-left: 40px !important;
+            }
+            .names-container {
+                margin-left: 40px !important;
+            }
+            .compare-right .data-row {
+                padding-top: 6px !important;
+                padding-bottom: 6px !important;
+            }
+            .radar-chart-box {
+                height: 233px !important;
+            }
+            .nav-card .feature-btn {
+                height: 44px !important;
+                padding: 0 16px !important;
+            }
+            .nav-card .feature-btn img {
+                width: 32px !important;
+                height: 32px !important;
+            }
+            .nav-card .compare-tab-btn {
+                height: 44px !important;
+                padding: 0 12px !important;
+                font-size: 13px !important;
+            }
+            .nav-card .compare-tab-btn img {
+                width: 32px !important;
+                height: 32px !important;
+                position: relative;
+                left: -5px;
+            }
+        }
+        /* 移动端自适应 */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+                overflow-y: auto;
+            }
+            .app-wrapper {
+                width: 100%;
+                max-width: 396px;
+                margin: 0 auto;
+                transform: none !important;
+            }
+            .main-card {
+                width: 100%;
+                aspect-ratio: 380 / 456;
+                height: auto;
+            }
+            .nav-card {
+                width: 100%;
+                height: auto;
+                padding: 8px 0;
+            }
+            .compare-flex {
+                flex-direction: column !important;
+            }
+            .compare-left {
+                flex: auto !important;
+                min-height: 380px !important;
+                border-right: none !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+            }
+            .nav-buttons {
+                display: flex;
+                flex-wrap: nowrap !important;
+                justify-content: center;
+                gap: 6px;
+                padding: 0 4px;
+            }
+            .mobile-detail-btn {
+                position: absolute;
+                top: 12px;
+                right: 12px;
+                z-index: 50;
+            }
+            .feature-btn {
+                padding: 4px 8px !important;
+            }
+            .feature-btn img {
+                width: 28px !important;
+                height: 28px !important;
+            }
+            .compare-tab-btn {
+                padding: 4px 8px !important;
+                font-size: 11px !important;
+            }
+            .compare-tab-btn img {
+                width: 26px !important;
+                height: 26px !important;
+            }
+        }
+        .app-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .main-card {
+            background-color: #f1f5f9;
+            border-radius: 28px;
+            box-shadow: 0 25px 40px -12px rgba(0,0,0,0.4);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .nav-card {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .radar-outer {
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: none;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .radar-chart-box {
+            width: 100%;
+            height: 235px;
+            position: relative;
+        }
+        @media (min-width: 769px) {
+            .radar-chart-box text {
+                font-size: 11px !important;
+            }
+        }
+        @media (max-width: 768px) {
+            .radar-chart-box text {
+                font-size: 10px !important;
+            }
+        }
+        .radar-chart-box text {
+            font-family: 'Inter', system-ui, -apple-system, 'Microsoft YaHei', sans-serif !important;
+            font-weight: 700 !important;
+            fill: #334155 !important;
+            dominant-baseline: middle !important;
+            text-anchor: middle !important;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .hotspot-pulse {
+            animation: pulse-ring 2s infinite;
+        }
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: scale(0.96) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-animate {
+            animation: fadeSlide 0.2s ease-out;
+        }
+        img {
+            object-fit: contain;
+        }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
 
+<script>
+    (function() {
+        const IMG_BASE = {
+            craneFront: './crane_front.png.png',
+            craneSide: './crane_side.png.png',
+            whiteCrane: './white_crane.png.png',
+            blackStork: './black_stork.png.png',
+            crestedIbis: './crested_ibis.png.png'
+        };
+        const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 260'%3E%3Crect width='180' height='260' fill='%23cbd5e1'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23475669' font-size='20' font-weight='bold'%3E🕊️%3C/text%3E%3C/svg%3E";
+
+        const CRANE = {
+            id: 'red-crowned',
+            name: '丹顶鹤',
+            bodyLength: 160, weight: 10, agility: 85, biteForce: 20, lifespan: 60,
+            imageUrl: IMG_BASE.craneFront,
+            sideImageUrl: IMG_BASE.craneSide
+        };
+
+        const COMPARE_LIST = [
+            { id: 'white-crane', name: '白鹤', bodyLength: 140, weight: 8, agility: 80, biteForce: 15, lifespan: 50, imageUrl: IMG_BASE.whiteCrane, color: '#94a3b8' },
+            { id: 'black-stork', name: '黑鹳', bodyLength: 100, weight: 3, agility: 70, biteForce: 25, lifespan: 30, imageUrl: IMG_BASE.blackStork, color: '#334155' },
+            { id: 'crested-ibis', name: '朱鹮', bodyLength: 75, weight: 2, agility: 75, biteForce: 10, lifespan: 20, imageUrl: IMG_BASE.crestedIbis, color: '#ec4899' }
+        ];
+
+        const HOTSPOTS = {
+            front: [{ id: 'crown', title: '丹顶', desc: '丹顶鹤的丹顶是头顶裸露的红色皮肤，无羽毛覆盖，由密集的毛细血管形成，色泽鲜红亮丽。它并非天生就有，雏鸟无顶，成年后才逐渐显现，情绪兴奋或繁殖期时颜色会更加鲜艳。这抹独特的红是丹顶鹤的标志性特征，象征着成熟，也让它的身姿显得格外高贵醒目，极具辨识度。', x: 50.5, y: 14 }],
+            side: [
+                { id: 'beak', title: '长喙', desc: '丹顶鹤的长喙尖长笔直、坚硬纤细，呈淡灰绿色，长约15厘米，是适配湿地生活的多功能利器。它能轻松探入浅水泥沙，精准捕食鱼虾、啄食水草与昆虫，也可叼取芦苇筑巢、抚育雏鸟，遇危险时还能作为防御武器，是其在湿地高效生存、繁衍的核心器官。', x: 67, y: 18 },
+                { id: 'wings', title: '飞羽', desc: '丹顶鹤的飞羽是翅膀上负责飞行的核心羽毛，修长坚硬、排列紧密。它的体羽洁白，翅尖的初级飞羽为纯正的黑色，静止时收拢如优雅的裙摆。飞羽舒展时力量十足，支撑丹顶鹤完成长途迁徙，飞行时黑白对比鲜明，姿态矫健飘逸，是它兼具实用性与美感的重要特征。', x: 45, y: 60 }
+            ]
+        };
+
+        let currentView = 0;
+        let selectedCompare = COMPARE_LIST[0];
+        let isMobile = window.innerWidth < 769;
+        let sideView = 'front';
+        let mainContainer, navContainer;
+        let echartsInstance = null;
+
+        function getRadarValues(animal) {
+            return [animal.bodyLength, animal.weight, animal.agility, animal.biteForce, animal.lifespan];
+        }
+
+        function renderRadarChart() {
+            if (isMobile) return;
+            const container = document.getElementById('radarChart');
+            if (!container) return;
+            const craneValues = getRadarValues(CRANE);
+            const compareValues = getRadarValues(selectedCompare);
+            const indicators = [
+                { name: '身长', max: 200 },
+                { name: '体重', max: 20 },
+                { name: '敏捷', max: 100 },
+                { name: '喙力', max: 30 },
+                { name: '圈养寿命', max: 60 }
+            ];
+            const option = {
+                radar: {
+                    shape: 'polygon',
+                    center: ['50%', '50%'],
+                    radius: '60%',
+                    splitLine: { lineStyle: { color: '#E2E8F0', type: 'dashed', width: 1 } },
+                    splitArea: { show: false },
+                    axisLine: { lineStyle: { color: '#E2E8F0', width: 1 } },
+                    indicator: indicators,
+                    axisName: { fontSize: 11, fontWeight: 'bold', color: '#334155', fontFamily: 'Inter, system-ui, sans-serif' }
+                },
+                series: [
+                    {
+                        type: 'radar',
+                        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(59, 130, 246, 0.35)' },
+                            { offset: 1, color: 'rgba(59, 130, 246, 0.08)' }
+                        ]) },
+                        lineStyle: { color: '#3b82f6', width: 2 },
+                        symbol: 'none',
+                        data: [{ value: craneValues, name: CRANE.name }]
+                    },
+                    {
+                        type: 'radar',
+                        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(100, 116, 139, 0.2)' },
+                            { offset: 1, color: 'rgba(100, 116, 139, 0.05)' }
+                        ]) },
+                        lineStyle: { color: '#64748b', width: 2 },
+                        symbol: 'none',
+                        data: [{ value: compareValues, name: selectedCompare.name }]
+                    }
+                ]
+            };
+
+            if (echartsInstance && echartsInstance.getDom() === container) {
+                echartsInstance.setOption(option, true);
+                echartsInstance.resize();
+            } else {
+                if (echartsInstance) echartsInstance.dispose();
+                echartsInstance = echarts.init(container);
+                echartsInstance.setOption(option);
+            }
+        }
+
+        function introViewHTML() {
+            let hotspotsArr = [...(HOTSPOTS[sideView] || [])];
+            if (!isMobile && sideView === 'side') {
+                hotspotsArr = hotspotsArr.map(h => {
+                    if (h.id === 'beak') {
+                        return { ...h, x: 60 };
+                    }
+                    return h;
+                });
+            }
+            const imgSrc = sideView === 'front' ? CRANE.imageUrl : CRANE.sideImageUrl;
+            let imgStyle;
+            if (isMobile) {
+                if (sideView === 'front') {
+                    imgStyle = 'height: 100%; max-width: 24%;';
+                } else {
+                    imgStyle = 'height: 100%; max-width: 44%;';
+                }
+            } else {
+                imgStyle = 'height: calc(82% + 15px); max-width: 90%;';
+            }
+            // 移动端横线父容器 left-5
+            const lineContainerClass = isMobile ? 'absolute left-5 right-0 bottom-16 flex justify-center' : 'absolute left-0 right-0 bottom-16 flex justify-center';
+            // 移动端刻度尺样式: left-1, gap-1, w-2
+            const rulerClass = isMobile ? 'absolute left-1 md:left-4 flex flex-col justify-between items-end pointer-events-none z-10 ruler-intro-pc' : 'absolute left-2 md:left-4 flex flex-col justify-between items-end pointer-events-none z-10 ruler-intro-pc';
+            const rulerStyle = 'top: 3rem; bottom: 3.5rem;';
+            return `
+                <div class="relative w-full h-full flex flex-col bg-[#f1f5f9] overflow-hidden">
+                    <div class="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex bg-white/80 backdrop-blur-sm rounded-full p-1 shadow-sm">
+                        <button data-side="front" class="side-switch px-4 py-1.5 rounded-full text-sm font-semibold ${sideView === 'front' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'}">正面</button>
+                        <button data-side="side" class="side-switch px-4 py-1.5 rounded-full text-sm font-semibold ${sideView === 'side' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'}">侧面</button>
+                    </div>
+                    <div class="absolute left-0 right-0 bottom-16 top-20 flex items-end justify-center">
+                        <div class="relative w-full h-full flex justify-center items-end">
+                            <img src="${imgSrc}" alt="丹顶鹤" class="object-contain object-bottom drop-shadow-xl" style="${imgStyle}" onerror="this.src='${PLACEHOLDER}'">
+                            ${hotspotsArr.map(h => `
+                                <button class="absolute hotspot-btn group" style="left: ${h.x}%; top: ${h.y}%; transform: translate(-50%, -50%);" data-title="${h.title}" data-desc='${h.desc}'>
+                                    <div class="relative">
+                                        <div class="w-6 h-6 rounded-full bg-blue-500/80 border-2 border-white shadow-lg hotspot-pulse"></div>
+                                        <div class="absolute inset-0 w-6 h-6 rounded-full bg-blue-400/40"></div>
+                                    </div>
+                                    <span class="absolute left-1/2 -translate-x-1/2 top-8 whitespace-nowrap bg-white/95 px-2 py-1 rounded-full text-xs font-bold text-slate-700 shadow-md opacity-0 group-hover:opacity-100 transition-opacity">${h.title}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="${lineContainerClass}">
+                        <div class="w-[75%] h-px bg-slate-400"></div>
+                    </div>
+                    <div class="absolute left-0 right-0 bottom-4 text-center text-sm font-bold text-slate-700">丹顶鹤</div>
+                    <div class="${rulerClass}" style="${rulerStyle}">
+                        ${[200,150,100,50,0].map(v => `
+                            <div class="flex items-center gap-${isMobile ? '1' : '2'}">
+                                <span class="text-xs text-slate-500 font-medium">${v}厘米</span>
+                                <div class="w-${isMobile ? '2' : '4'} h-[1px] bg-slate-400"></div>
+                            </div>
+                        `).join('')}
+                        <div class="absolute right-0 top-0 bottom-0 w-[1px] bg-slate-300"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function compareViewHTML() {
+            const compareHeight = (selectedCompare.bodyLength / 200) * 100;
+            // 移动端左侧丹顶鹤向右移动50px
+            const leftShift = isMobile ? '50px' : '40px';
+            // 移动端右侧对比物种基础向左偏移20px
+            let rightShift = isMobile ? 'margin-left: -20px;' : '';
+            // 如果是白鹤(white-crane)且为移动端，再额外向左移动8px（总偏移-28px，但之前已累积-30？重新整合：基础-20 + 额外-18 = -38）
+            if (isMobile && selectedCompare.id === 'white-crane') {
+                rightShift = 'margin-left: -38px;';
+            }
+            // PC端原有的对比物种偏移（黑鹳等微调）保留
+            let additionalRightStyle = '';
+            if (!isMobile) {
+                additionalRightStyle = 'margin-left: -13px;';
+            }
+            
+            let leftWidthStyle, leftHeightStyle;
+            let rightWidthStyle, rightHeightStyle;
+            
+            if (isMobile) {
+                leftWidthStyle = 'width: clamp(157px, 28vw, 190px);';
+                leftHeightStyle = 'height: 100%;';
+                if (selectedCompare.id === 'white-crane') {
+                    rightWidthStyle = 'width: clamp(145px, 24vw, 170px);';
+                    rightHeightStyle = 'height: calc(105% + 10px);';
+                } else if (selectedCompare.id === 'black-stork') {
+                    rightWidthStyle = 'width: clamp(116px, 24vw, 170px);';
+                    rightHeightStyle = 'height: calc(58.335% + 10px);';
+                } else {
+                    rightWidthStyle = 'width: clamp(100px, 24vw, 170px);';
+                    rightHeightStyle = 'height: calc(100% + 10px);';
+                }
+            } else {
+                leftWidthStyle = 'width: clamp(110px, 28vw, 190px);';
+                leftHeightStyle = 'height: calc(100% + 10px);';
+                rightWidthStyle = `width: clamp(100px, 24vw, 170px);`;
+                rightHeightStyle = `height: calc(${compareHeight}% + 10px);`;
+            }
+            
+            // 移动端名称容器左边距50px
+            const nameContainerMarginLeft = isMobile ? '50px' : '40px';
+            // 合并右侧图片的样式字符串
+            const fullRightStyle = `${rightWidthStyle} ${rightHeightStyle} ${rightShift} ${additionalRightStyle}`;
+            // 移动端基线 left 改为 75px
+            const baselineLeft = isMobile ? '75px' : '100px';
+            
+            return `
+                <div class="relative w-full h-full flex md:flex-row bg-[#f1f5f9] compare-flex">
+                    ${isMobile ? `<div class="mobile-detail-btn"><button id="mobileDetailOpenBtn" class="bg-white/90 backdrop-blur-sm border-2 border-blue-500 text-blue-600 font-bold px-3 py-1.5 rounded-full shadow-md text-xs">详细对比</button></div>` : ''}
+                    <div class="relative flex-[1.6] flex flex-col justify-end p-2 md:p-3 border-b md:border-b-0 md:border-r border-slate-200/60 compare-left">
+                        <div class="absolute left-2 md:left-4 flex flex-col justify-between items-end pointer-events-none z-10 ruler-compare-pc" style="top: 3rem; bottom: 3.5rem;">
+                            <div class="flex items-center gap-2"><span class="text-xs text-slate-500 font-medium">200厘米</span><div class="w-4 h-[1px] bg-slate-400"></div></div>
+                            <div class="flex items-center gap-2"><span class="text-xs text-slate-500 font-medium">150厘米</span><div class="w-4 h-[1px] bg-slate-400"></div></div>
+                            <div class="flex items-center gap-2"><span class="text-xs text-slate-500 font-medium">100厘米</span><div class="w-4 h-[1px] bg-slate-400"></div></div>
+                            <div class="flex items-center gap-2"><span class="text-xs text-slate-500 font-medium">50厘米</span><div class="w-4 h-[1px] bg-slate-400"></div></div>
+                            <div class="flex items-center gap-2"><span class="text-xs text-slate-500 font-medium">0厘米</span><div class="w-4 h-[1px] bg-slate-400"></div></div>
+                            <div class="absolute right-0 top-0 bottom-0 w-[1px] bg-slate-300"></div>
+                        </div>
+                        <div class="absolute flex items-end justify-start gap-3 md:gap-5 left-7 right-3 top-12 bottom-14 species-container" style="margin-left: ${isMobile ? '0px' : '40px'};">
+                            <!-- 左侧丹顶鹤 -->
+                            <div class="flex flex-col items-center shrink-0" style="${leftWidthStyle} ${leftHeightStyle} margin-left: ${leftShift};">
+                                <img src="${CRANE.sideImageUrl}" class="w-full h-full object-contain object-bottom drop-shadow-lg" onerror="this.src='${PLACEHOLDER}'" alt="丹顶鹤">
+                            </div>
+                            <!-- 右侧对比物种 -->
+                            <div class="flex flex-col items-center shrink-0" style="${fullRightStyle}">
+                                <img src="${selectedCompare.imageUrl}" class="w-full h-full object-contain object-bottom drop-shadow-lg" onerror="this.src='${PLACEHOLDER}'" alt="${selectedCompare.name}">
+                            </div>
+                        </div>
+                        <div class="absolute left-7 right-3 bottom-14 h-[2px] bg-slate-400/50" style="left: ${baselineLeft}; right: 16px;"></div>
+                        <div class="absolute bottom-4 left-7 right-3 flex justify-start gap-6 md:gap-8 names-container" style="margin-left: ${nameContainerMarginLeft};">
+                            <div class="flex flex-col items-center shrink-0" style="width: clamp(110px, 28vw, 190px);">
+                                <span class="text-xs md:text-sm font-bold text-blue-600 whitespace-nowrap">丹顶鹤</span>
+                            </div>
+                            <div class="flex flex-col items-center shrink-0" style="width: clamp(100px, 24vw, 170px);">
+                                <span class="text-xs md:text-sm font-bold text-slate-700 whitespace-nowrap">${selectedCompare.name}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${!isMobile ? `
+                    <div class="flex-1 flex flex-col p-3 md:p-4 bg-white/40 backdrop-blur-sm overflow-y-auto compare-right">
+                        <div class="radar-outer">
+                            <div class="radar-chart-box">
+                                <div id="radarChart" style="width:100%; height:100%;"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-1 mt-1">
+                            ${['bodyLength','weight','agility','biteForce','lifespan'].map(key => {
+                                const labels = { bodyLength:'身长', weight:'体重', agility:'敏捷', biteForce:'喙力', lifespan:'圈养寿命' };
+                                const unit = { bodyLength:'厘米', weight:'公斤', agility:'分', biteForce:'公斤', lifespan:'年' };
+                                return `
+                                <div class="flex justify-between items-center rounded-lg bg-white/30 data-row" style="padding-left: 8px; padding-right: 8px;">
+                                    <span class="text-slate-600 text-xs font-bold">${labels[key]}</span>
+                                    <div class="flex gap-2 items-center">
+                                        <span class="font-bold text-blue-600 text-sm">${CRANE[key]}<span class="text-[10px] ml-0.5">${unit[key]}</span></span>
+                                        <span class="text-slate-300 text-xs">vs</span>
+                                        <span class="font-bold text-slate-700 text-sm">${selectedCompare[key]}<span class="text-[10px] ml-0.5">${unit[key]}</span></span>
+                                    </div>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function showMobileCompareModal() {
+            const modalDiv = document.createElement('div');
+            modalDiv.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4';
+            modalDiv.style.background = 'rgba(0,0,0,0.6)';
+            modalDiv.style.backdropFilter = 'blur(4px)';
+            modalDiv.innerHTML = `
+                <div class="bg-white rounded-3xl w-full max-w-[360px] max-h-[75vh] overflow-y-auto p-5 modal-animate relative">
+                    <button class="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500" id="closeCompareModalBtn">✕</button>
+                    <h3 class="text-xl font-black text-blue-600">参数对比</h3>
+                    <div class="text-sm text-slate-500 mb-4">丹顶鹤 vs ${selectedCompare.name}</div>
+                    <div class="space-y-2">
+                        ${['bodyLength','weight','agility','biteForce','lifespan'].map(key => {
+                            const labels = { bodyLength:'身长', weight:'体重', agility:'敏捷', biteForce:'喙力', lifespan:'圈养寿命' };
+                            const unit = { bodyLength:'厘米', weight:'公斤', agility:'分', biteForce:'公斤', lifespan:'年' };
+                            return `
+                            <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                                <span class="text-slate-600 text-sm font-medium">${labels[key]}</span>
+                                <div class="flex gap-3 items-center">
+                                    <span class="font-bold text-blue-600">${CRANE[key]}${unit[key]}</span>
+                                    <span class="text-slate-300 text-xs">VS</span>
+                                    <span class="font-bold text-slate-700">${selectedCompare[key]}${unit[key]}</span>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalDiv);
+            const close = () => modalDiv.remove();
+            modalDiv.querySelector('#closeCompareModalBtn')?.addEventListener('click', close);
+            modalDiv.addEventListener('click', (e) => { if (e.target === modalDiv) close(); });
+        }
+
+        function showHotspotModal(title, desc) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4';
+            modal.style.background = 'rgba(0,0,0,0.5)';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl max-w-sm w-full p-5 modal-animate relative">
+                    <button class="absolute top-2 right-2 text-2xl text-slate-400" id="closeHotspotBtn">&times;</button>
+                    <div class="h-1 w-12 bg-blue-500 rounded-full mb-3"></div>
+                    <h4 class="text-xl font-black">${title}</h4>
+                    <p class="text-slate-600 mt-2 text-sm leading-relaxed">${desc}</p>
+                    <button id="hotConfirmBtn" class="mt-5 w-full py-2 bg-slate-100 rounded-xl font-medium">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const remove = () => modal.remove();
+            modal.querySelector('#closeHotspotBtn')?.addEventListener('click', remove);
+            modal.querySelector('#hotConfirmBtn')?.addEventListener('click', remove);
+            modal.addEventListener('click', (e) => { if (e.target === modal) remove(); });
+        }
+
+        function renderMain() {
+            if (!mainContainer) return;
+            const html = currentView === 0 ? introViewHTML() : compareViewHTML();
+            mainContainer.innerHTML = html;
+            if (currentView === 0) {
+                document.querySelectorAll('.side-switch').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const newSide = btn.dataset.side;
+                        if (newSide) { sideView = newSide; renderMain(); renderNav(); }
+                    });
+                });
+                document.querySelectorAll('.hotspot-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const title = btn.dataset.title, desc = btn.dataset.desc;
+                        if (title) showHotspotModal(title, desc);
+                    });
+                });
+                if (echartsInstance) { echartsInstance.dispose(); echartsInstance = null; }
+            } else {
+                if (isMobile) {
+                    const mobileBtn = document.getElementById('mobileDetailOpenBtn');
+                    if (mobileBtn) mobileBtn.onclick = () => showMobileCompareModal();
+                } else {
+                    setTimeout(() => { renderRadarChart(); }, 30);
+                }
+            }
+        }
+
+        function renderNav() {
+            if (!navContainer) return;
+            navContainer.innerHTML = `
+                <div class="flex w-full">
+                    <div class="flex-1 flex flex-col items-center justify-center gap-1 border-r border-slate-200 bg-slate-50/50 py-6">
+                        <span class="font-bold text-[10px] md:text-xs transition-colors" style="color: #8d8f99;">外形特征</span>
+                        <button id="navIntroBtn" class="feature-btn justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm hover:bg-accent hover:text-accent-foreground h-9 py-2 rounded-full px-2 flex items-center gap-1.5 transition-all text-sm bg-white border-2 ${currentView === 0 ? 'border-blue-500 text-blue-600' : 'border-slate-200 text-slate-600 hover:border-primary/50'}">
+                            <img src="${CRANE.imageUrl}" class="rounded-full object-contain border-2 border-white shadow-sm bg-white" style="width: 32px; height: 32px;" onerror="this.src='${PLACEHOLDER}'">
+                            <span class="font-bold leading-tight whitespace-nowrap">丹顶鹤</span>
+                        </button>
+                    </div>
+                    <div class="flex-[2] flex flex-col items-center justify-center gap-1 bg-white py-1">
+                        <span class="font-bold text-[10px] md:text-xs transition-colors ${currentView === 1 ? 'text-blue-600' : 'text-slate-500'}">物种对比</span>
+                        <div class="flex items-center gap-2">
+                            ${COMPARE_LIST.map(animal => `
+                                <button data-compare="${animal.id}" class="compare-tab-btn justify-center whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm hover:bg-accent hover:text-accent-foreground h-9 py-2 rounded-full px-3 flex items-center gap-1.5 transition-all text-sm bg-white border-2 ${currentView === 1 && selectedCompare.id === animal.id ? 'border-blue-500 text-blue-600' : 'border-slate-200 text-slate-600 hover:border-primary/50'}">
+                                    <img src="${animal.imageUrl}" class="rounded-full object-contain border-2 border-white shadow-sm bg-white" style="width: 32px; height: 32px;" onerror="this.src='${PLACEHOLDER}'">
+                                    <span class="font-bold leading-tight whitespace-nowrap">${animal.name}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('navIntroBtn')?.addEventListener('click', () => {
+                if (currentView === 0) return;
+                currentView = 0;
+                renderMain();
+                renderNav();
+            });
+            document.querySelectorAll('.compare-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.compare;
+                    const found = COMPARE_LIST.find(a => a.id === id);
+                    if (found && found.id !== selectedCompare.id) {
+                        selectedCompare = found;
+                        currentView = 1;
+                        renderMain();
+                        renderNav();
+                    } else if (currentView !== 1) {
+                        currentView = 1;
+                        renderMain();
+                        renderNav();
+                    } else if (found && found.id === selectedCompare.id && currentView === 1) {
+                        if (!isMobile) setTimeout(() => renderRadarChart(), 20);
+                    }
+                });
+            });
+        }
+
+        function handleResize() {
+            const newMobile = window.innerWidth < 769;
+            if (newMobile !== isMobile) {
+                isMobile = newMobile;
+                if (echartsInstance) { echartsInstance.dispose(); echartsInstance = null; }
+                renderMain();
+                renderNav();
+            } else if (currentView === 1 && !isMobile) {
+                setTimeout(() => {
+                    if (document.getElementById('radarChart')) renderRadarChart();
+                }, 50);
+            }
+        }
+
+        function init() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'app-wrapper';
+            const mainCard = document.createElement('div');
+            mainCard.className = 'main-card';
+            mainContainer = document.createElement('div');
+            mainContainer.className = 'w-full h-full relative';
+            mainCard.appendChild(mainContainer);
+            const navCard = document.createElement('div');
+            navCard.className = 'nav-card';
+            navContainer = document.createElement('div');
+            navCard.appendChild(navContainer);
+            wrapper.appendChild(mainCard);
+            wrapper.appendChild(navCard);
+            document.body.appendChild(wrapper);
+            renderMain();
+            renderNav();
+            window.addEventListener('resize', handleResize);
+        }
+        init();
+    })();
+</script>
+</body>
+</html>
