@@ -391,21 +391,68 @@
             gap: 4px;
             transform: translateY(-10px);
         }
+        /* 对比行样式 - 整体缩小一号字号 */
         .stat-row {
             display: flex;
             align-items: center;
             background: var(--bg-gray);
             border-radius: 8px;
-            padding: 4px 10px;
-            font-size: 11px;
+            padding: 4px 8px;
+            font-size: 9px;           /* 从10px缩小为9px */
         }
-        .stat-header { background: transparent !important; padding: 0 10px 4px 10px !important; }
-        .stat-header .stat-base, .stat-header .stat-target { font-size: 12px !important; font-weight: 800 !important; color: var(--text-main);}
-        .stat-label { width: 70px; color: var(--text-secondary); font-weight: 700; font-size: 10px; white-space: nowrap; }
-        .stat-base { flex:1; text-align: right; color: var(--primary); font-weight: 800; }
-        .stat-vs { margin: 0 8px; font-size:9px; color: var(--text-tertiary); font-weight:800; }
-        .stat-target { flex:1; text-align: left; color: var(--text-main); font-weight: 800; }
-        .stat-unit { font-size:9px; font-style: italic; color: var(--text-tertiary); margin-left:2px; }
+        .stat-header {
+            background: transparent !important;
+            padding: 0 8px 3px 8px !important;
+        }
+        /* 表头左侧：丹顶鹤用主色 */
+        .stat-header .stat-base {
+            color: var(--primary) !important;
+        }
+        /* 表头右侧：对比物种名改为 #848691 (灰色) */
+        .stat-header .stat-target {
+            color: var(--text-secondary) !important;
+        }
+        .stat-label {
+            width: 64px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 9px;           /* 从10px缩小为9px */
+            white-space: nowrap;
+        }
+        /* 数据行左侧数值 = 主色 */
+        .stat-base {
+            flex: 1;
+            text-align: right;
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 9px;           /* 新增 */
+        }
+        .stat-vs {
+            margin: 0 6px;
+            font-size: 8px;           /* 从9px缩小为8px */
+            color: var(--text-tertiary);
+            font-weight: 800;
+        }
+        /* 数据行右侧数值 = 灰色 */
+        .stat-target {
+            flex: 1;
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 9px;           /* 新增 */
+        }
+        .stat-unit {
+            font-size: 8px;           /* 从9px缩小为8px */
+            font-style: italic;
+            color: var(--text-tertiary);
+            margin-left: 2px;
+        }
+        /* 表头中字体也相应缩小 */
+        .stat-header .stat-base,
+        .stat-header .stat-target {
+            font-size: 11px !important;  /* 从12px缩小为11px */
+        }
+        
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -440,7 +487,7 @@
             object-fit: cover;
             border-radius: 12px;
         }
-        /* PC端模态框图片在左侧，文字在右侧 (左右布局) */
+        /* PC端模态框图片在左侧，文字在右侧 */
         .modal-detail-layout {
             display: flex;
             gap: 20px;
@@ -478,7 +525,7 @@
             font-weight: 600;
             margin-bottom: 0;
         }
-        /* 移动端模态框适配：图片缩小，文字完整显示，参数对比紧凑无溢出 */
+        /* 移动端模态框适配 */
         @media (max-width: 599px) {
             .modal-detail-layout {
                 gap: 12px;
@@ -499,7 +546,6 @@
             .modal-header {
                 padding: 16px 16px 0 16px;
             }
-            /* 参数对比弹窗 - 大幅缩小上下内边距，确保所有行完整显示 */
             .modal-content.is-compare {
                 padding: 0 !important;
             }
@@ -521,7 +567,6 @@
                 font-size: 9px !important;
                 margin: 0 6px !important;
             }
-            /* 极小尺寸 300x360 进一步优化 */
             @media (max-width: 360px) and (max-height: 400px) {
                 .modal-content.is-compare > div:first-child {
                     padding: 8px 12px 12px 12px !important;
@@ -549,7 +594,7 @@
                 }
             }
         }
-        /* 移动端导航栏保持不变 */
+        /* 移动端导航栏优化 */
         @media (max-width: 599px) {
             #app {
                 padding: 4px;
@@ -687,9 +732,29 @@
                 width: 20px !important;
                 height: 20px !important;
             }
+            /* 移动端对比行颜色确保一致，且字号同步缩小 */
+            .stat-target {
+                color: var(--text-secondary) !important;
+            }
+            .stat-row {
+                font-size: 8.5px;
+            }
             .stat-label {
-                width: 60px !important;
-                font-size: 9px !important;
+                font-size: 8.5px;
+                width: 52px;
+            }
+            .stat-header .stat-base, 
+            .stat-header .stat-target {
+                font-size: 10px !important;
+            }
+            .stat-base, .stat-target {
+                font-size: 8.5px;
+            }
+            .stat-vs {
+                font-size: 7px;
+            }
+            .stat-unit {
+                font-size: 7px;
             }
         }
         /* 移动端雷达图和统计区域微调 */
@@ -724,7 +789,7 @@
             font-size: 13px;
         }
         .compare-lynx { color: var(--primary); text-align: right; flex:1; }
-        .compare-target { color: var(--text-main); text-align: left; flex:1; }
+        .compare-target { color: var(--text-secondary); text-align: left; flex:1; }
         .compare-vs { color: var(--text-tertiary); font-size: 11px; font-weight: 700; margin: 0 8px; }
     </style>
 </head>
@@ -812,7 +877,7 @@
     </div>
 </div>
 <script>
-    // ================= 丹顶鹤完整数据 (身高/体重/最高时速/颈长/寿命) =================
+    // ================= 丹顶鹤完整数据 =================
     const MAX_LEN = 200;
     const MAX_SPEED = 200;
     const MAX_WEIGHT = 12;
@@ -837,23 +902,10 @@
         crestedIbis: [ normValue(75, MAX_LEN), normValue(2, MAX_WEIGHT), normValue(50, MAX_SPEED), normValue(30, MAX_NECK), normValue(20, MAX_LIFE) ]
     };
 
-    // 外形特征详情 (使用相对路径，将 zmfd.png 和 cmfd.png 放在与 HTML 同级目录)
     const detailData = {
-        crown: {
-            title: "朱红丹顶", sub: "头部标志",
-            text: "丹顶鹤的丹顶是头顶裸露的红色皮肤（布满毛细血管），成年后显现，情绪兴奋时更鲜艳。",
-            zoomImage: "./zmfd.png"
-        },
-        plumage: {
-            title: "飞羽", sub: "飞行核心羽翼",
-            text: "丹顶鹤飞羽修长坚硬，体羽洁白，翅尖黑羽如裙摆；飞行时黑白分明、矫健飘逸，兼具实用与美感。",
-            zoomImage: "./crane_front.png.png"
-        },
-        beak: {
-            title: "修长利喙", sub: "精巧捕食工具",
-            text: "丹顶鹤的喙长约15厘米，淡灰绿色，尖直坚硬，用于捕鱼虾、啄水草、筑巢育雏，也是防御武器。",
-            zoomImage: "./cmfd.png"
-        }
+        crown: { title: "朱红丹顶", sub: "头部标志", text: "丹顶鹤的丹顶是头顶裸露的红色皮肤（布满毛细血管），成年后显现，情绪兴奋时更鲜艳。", zoomImage: "./zmfd.png" },
+        plumage: { title: "飞羽", sub: "飞行核心羽翼", text: "丹顶鹤飞羽修长坚硬，体羽洁白，翅尖黑羽如裙摆；飞行时黑白分明、矫健飘逸，兼具实用与美感。", zoomImage: "./crane_front.png.png" },
+        beak: { title: "修长利喙", sub: "精巧捕食工具", text: "丹顶鹤的喙长约15厘米，淡灰绿色，尖直坚硬，用于捕鱼虾、啄水草、筑巢育雏，也是防御武器。", zoomImage: "./cmfd.png" }
     };
 
     let currentCompareKey = "whiteCrane";
@@ -979,7 +1031,6 @@
         }, 30);
     }
 
-    // PC端模态框：图片在左侧，文字在右侧
     function showDetail(key) {
         const detail = detailData[key];
         let imgSrc = detail.zoomImage;
