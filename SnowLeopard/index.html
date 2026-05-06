@@ -526,7 +526,7 @@
             border: 4px solid rgba(100, 135, 250, 0.2);
             margin-bottom: 0;
             background-repeat: no-repeat;
-            background-size: cover;          /* 改用 cover，完全覆盖圆形区域，不留白 */
+            background-size: cover;          /* 完全覆盖圆形区域 */
             background-position: center center;
             background-color: var(--bg-gray);
             display: none;
@@ -1136,13 +1136,13 @@
 
                 <div class="lynx-stage">
                     <div class="lynx-figure active" style="height: 62.5%; display: inline-flex;">
-                        <img src="file:///C:/Users/LuoXinYu/Desktop/雪豹/xuebaozhengmian.png" alt="雪豹正面">
+                        <img src="./xuebaozhengmian.png" alt="雪豹正面">
                         <div class="hotspot" style="bottom: 85%; left: 52%;" onclick="showDetail('ears')"></div>
                         <div class="hotspot" style="bottom: 8%; left: 60%;" onclick="showDetail('paws')"></div>
                     </div>
                     
                     <div class="lynx-figure" style="height: 62.5%; display: none;">
-                        <img src="file:///C:/Users/LuoXinYu/Desktop/雪豹/xuebaocemian.png" alt="雪豹侧面">
+                        <img src="./xuebaocemian.png" alt="雪豹侧面">
                         <div class="hotspot" style="bottom: 40%; left: 22%;" onclick="showDetail('tail')"></div>
                     </div>
                 </div>
@@ -1166,11 +1166,11 @@
 
                 <div class="compare-stage">
                     <div class="stage-animal base-animal" style="height: 62.5%;">
-                        <img src="file:///C:/Users/LuoXinYu/Desktop/雪豹/xuebaozhengmian.png">
+                        <img src="./xuebaozhengmian.png">
                         <div class="animal-name" style="color: var(--primary);">雪豹</div>
                     </div>
                     <div class="stage-animal target-animal" id="compareTargetContainer" style="height: 75%;">
-                        <img id="compareTargetImg" src="file:///C:/Users/LuoXinYu/Desktop/雪豹/meizhoushi.png">
+                        <img id="compareTargetImg" src="./meizhoushi.png">
                         <div class="animal-name" id="compareTargetName" style="color: var(--text-secondary);">美洲狮</div>
                     </div>
                 </div>
@@ -1196,7 +1196,7 @@
             <div class="switch-title">外形特征</div>
             <div class="switch-items">
                 <div class="panel-item active" id="panelFeatureBtn" onclick="switchPanelByAvatar(0)">
-                    <img class="switch-avatar" src="file:///C:/Users/LuoXinYu/Desktop/雪豹/xuebaozhengmian.png" alt="雪豹">
+                    <img class="switch-avatar" src="./xuebaozhengmian.png" alt="雪豹">
                     <span class="switch-name">雪豹</span>
                 </div>
             </div>
@@ -1205,15 +1205,15 @@
             <div class="switch-title">物种对比</div>
             <div class="switch-items">
                 <div class="species-item" onclick="switchPanelByAvatar(1, 'cougar')" data-key="cougar">
-                    <img class="switch-avatar" src="file:///C:/Users/LuoXinYu/Desktop/雪豹/meizhoushi.png" alt="美洲狮">
+                    <img class="switch-avatar" src="./meizhoushi.png" alt="美洲狮">
                     <span class="switch-name">美洲狮</span>
                 </div>
                 <div class="species-item" onclick="switchPanelByAvatar(1, 'tiger')" data-key="tiger">
-                    <img class="switch-avatar" src="file:///C:/Users/LuoXinYu/Desktop/雪豹/dongbeihu.png" alt="东北虎">
+                    <img class="switch-avatar" src="./dongbeihu.png" alt="东北虎">
                     <span class="switch-name">东北虎</span>
                 </div>
                 <div class="species-item" onclick="switchPanelByAvatar(1, 'desertcat')" data-key="desertcat">
-                    <img class="switch-avatar" src="file:///C:/Users/LuoXinYu/Desktop/雪豹/huangmomao.png" alt="荒漠猫">
+                    <img class="switch-avatar" src="./huangmomao.png" alt="荒漠猫">
                     <span class="switch-name">荒漠猫</span>
                 </div>
             </div>
@@ -1258,10 +1258,10 @@
     };
     
     const animalAvatarMap = {
-        snowleopard: 'file:///C:/Users/LuoXinYu/Desktop/雪豹/xuebaozhengmian.png',
-        cougar: 'file:///C:/Users/LuoXinYu/Desktop/雪豹/meizhoushi.png',
-        tiger: 'file:///C:/Users/LuoXinYu/Desktop/雪豹/dongbeihu.png',
-        desertcat: 'file:///C:/Users/LuoXinYu/Desktop/雪豹/huangmomao.png'
+        snowleopard: './xuebaozhengmian.png',
+        cougar: './meizhoushi.png',
+        tiger: './dongbeihu.png',
+        desertcat: './huangmomao.png'
     };
     
     // 详情图片路径使用相对路径，缩放方式采用 cover 实现填满圆形且无漏边
