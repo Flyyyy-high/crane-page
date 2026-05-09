@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>珠颈斑鸠 (Spotted Dove) - 交互式科普</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ================= 主题变量 ================= */
+        :root {
+            --primary: #698bfa;
+            --bg-white: #ffffff;
+            --bg-gray: #f4f7fa;
+            --text-main: #1e1f24;
+            --text-secondary: #848691;
+            --text-tertiary: #b7b9c1;
+            --transition: all 0.28s ease;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+            color: var(--text-main);
+            user-select: none;
+        }
+        #fit-shell {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        #app {
+            position: relative;
+            z-index: 1;
+            width: 788px;
+            height: 492px;
+            overflow: hidden;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 12px;
+            transform-origin: center center;
+        }
+        .bg-glow {
+            position: absolute;
+            width: 40%;
+            height: 48%;
+            border-radius: 999px;
+            top: -10%;
+            left: -8%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(105, 139, 250, 0.15) 0%, rgba(105, 139, 250, 0) 70%);
+            z-index: 0;
+        }
+        /* 底部导航栏 (PC默认横向布局) */
+        .switch-bar {
+            height: 80px;
+            flex-shrink: 0;
+            display: grid;
+            grid-template-columns: 0.9fr 1.6fr;
+            gap: 12px;
+        }
+        .switch-group {
+            background: var(--bg-white);
+            border: 1px solid rgba(183, 185, 193, 0.4);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 10px 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+        .switch-title {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            font-weight: 700;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .switch-items {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 0 0 auto;
+        }
+        .panel-item, .species-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            padding: 6px 18px 6px 6px;
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background: var(--bg-gray);
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-secondary);
+            min-height: 40px;
+        }
+        .panel-item.active, .species-item.active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--bg-white);
+            box-shadow: 0 2px 6px rgba(105, 139, 250, 0.15);
+        }
+        /* 导航栏头像：PC端18x18，圆形完整适配 */
+        .switch-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            object-fit: contain;
+            background: #eef2f6;
+            border: 1px solid rgba(183, 185, 193, 0.3);
+            flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+        .switch-name {
+            font-size: 13px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        /* 主舞台 */
+        main {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            background: var(--bg-white);
+            border-radius: 20px;
+            border: 1px solid rgba(183, 185, 193, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+        .view-container {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            gap: 0;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.992);
+            transition: var(--transition);
+            background: linear-gradient(135deg, rgba(239, 246, 255, 0.4) 0%, #f8fafc 100%);
+        }
+        .view-container.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+        .panel-visual {
+            flex: 1.6;
+            position: relative;
+            min-width: 0;
+        }
+        .panel-detail {
+            flex: 0.85;
+            min-width: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .data-section {
+            background: var(--bg-white);
+            border-radius: 20px;
+            border: 1px solid rgba(183, 185, 193, 0.4);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100%;
+            max-height: 420px;
+        }
+        .ruler, .animal-stage, .compare-stage {
+            position: absolute;
+            top: 34px;
+            bottom: 32px;
+        }
+        .ruler {
+            left: 20px;
+            width: 56px;
+            border-right: 1px solid rgba(183, 185, 193, 0.6);
+            z-index: 5;
+        }
+        .ruler-tick {
+            position: absolute;
+            right: 0;
+            width: 6px;
+            height: 1px;
+            background: var(--text-tertiary);
+        }
+        .ruler-tick::before {
+            content: attr(data-val);
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            font-family: monospace;
+            white-space: nowrap;
+        }
+        .ruler-tick.major {
+            width: 12px;
+            background: var(--text-secondary);
+        }
+        .horizon-line {
+            position: absolute;
+            left: 76px;
+            right: 20px;
+            bottom: 32px;
+            height: 1px;
+            background: rgba(183, 185, 193, 0.6);
+            z-index: 1;
+        }
+        .animal-stage {
+            left: 76px;
+            right: 20px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 2;
+        }
+        .animal-figure {
+            position: relative;
+            display: none;
+            height: 100%;
+            width: 100%;
+            justify-content: center;
+            z-index: 1;
+            transition: opacity 0.2s ease;
+        }
+        .animal-figure.active {
+            display: flex;
+        }
+        .animal-figure img, .stage-animal img {
+            height: 100%;
+            width: auto;
+            display: block;
+            object-fit: contain;
+            object-position: bottom center;
+            transform-origin: bottom center;
+            transition: all 0.4s ease;
+        }
+        .pose-tabs {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 12;
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px;
+            border-radius: 999px;
+            border: 1px solid rgba(183, 185, 193, 0.4);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+        }
+        .pose-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 6px 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .pose-tab.active {
+            background: var(--bg-white);
+            color: var(--text-main);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+        .hotspot {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 3px solid var(--bg-white);
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            animation: attractPulse 2s infinite ease-out;
+            z-index: 10;
+        }
+        .hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            animation: none;
+        }
+        @keyframes attractPulse {
+            0% { box-shadow: 0 0 0 0 rgba(105, 139, 250, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(105, 139, 250, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(105, 139, 250, 0); }
+        }
+        .compare-stage {
+            left: 76px;
+            right: 20px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 30px;
+            z-index: 2;
+        }
+        .compare-detail-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 25;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 800;
+            border-radius: 999px;
+            padding: 6px 14px;
+            cursor: pointer;
+            display: none;
+        }
+        .stage-animal {
+            height: 100%;
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            position: relative;
+        }
+        .animal-name {
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 800;
+            text-align: center;
+            position: absolute;
+            bottom: -26px;
+            white-space: nowrap;
+        }
+        .base-name { color: var(--primary); }
+        .target-name { color: var(--text-main); }
+        
+        /* 雷达图区域 */
+        .chart-wrapper {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+            padding: 0;
+            min-height: 140px;
+            transform: translateY(-10px);
+        }
+        canvas#radarChart {
+            width: 100%;
+            height: auto;
+            max-height: 180px;
+        }
+        @media (min-width: 600px) {
+            .chart-wrapper {
+                min-height: 150px;
+            }
+            canvas#radarChart {
+                max-height: 170px;
+            }
+        }
+        
+        .stats-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            transform: translateY(-10px);
+        }
+        .stat-row {
+            display: flex;
+            align-items: center;
+            background: var(--bg-gray);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 9px;
+        }
+        .stat-header {
+            background: transparent !important;
+            padding: 0 8px 3px 8px !important;
+        }
+        .stat-header .stat-base {
+            color: var(--primary) !important;
+        }
+        .stat-header .stat-target {
+            color: var(--text-secondary) !important;
+        }
+        .stat-label {
+            width: 64px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 9px;
+            white-space: nowrap;
+        }
+        .stat-base {
+            flex: 1;
+            text-align: right;
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 9px;
+        }
+        .stat-vs {
+            margin: 0 6px;
+            font-size: 8px;
+            color: var(--text-tertiary);
+            font-weight: 800;
+        }
+        .stat-target {
+            flex: 1;
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 9px;
+        }
+        .stat-unit {
+            font-size: 8px;
+            font-style: italic;
+            color: var(--text-tertiary);
+            margin-left: 2px;
+        }
+        .stat-header .stat-base,
+        .stat-header .stat-target {
+            font-size: 11px !important;
+        }
+        
+        /* ========= 弹窗样式 (PC端保持不变) ========= */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: var(--bg-white);
+            border-radius: 28px;
+            width: min(92vw, 560px);
+            position: relative;
+            transform: scale(0.95);
+            transition: var(--transition);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        
+        .modal-content .detail-card {
+            background: #F8F8F8;
+            border-radius: 28px;
+            margin: 0 20px 24px 20px;
+            padding: 20px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.2s;
+        }
+        .modal-content .modal-zoom-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: #eef2f6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .modal-content .modal-zoom-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .modal-content .modal-text-flex {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.55;
+            color: var(--text-main);
+            margin: 0;
+            font-weight: 500;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .modal-header-custom {
+            padding: 24px 28px 8px 28px;
+        }
+        .modal-title-custom {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
+        }
+        .modal-subtitle-custom {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.05);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            z-index: 15;
+            backdrop-filter: blur(2px);
+        }
+        .modal-close-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        
+        /* ========= 移动端样式 ========= */
+        @media (max-width: 599px) {
+            /* 导航栏整体外框尺寸不变，但内部改为垂直布局：标题在上，按钮在下居中 */
+            .switch-bar {
+                height: auto;
+                min-height: unset;
+                gap: 8px;
+            }
+            .switch-group {
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 8px 6px;
+                min-height: 70px;
+                background: var(--bg-white);
+                border: 1px solid rgba(183, 185, 193, 0.6);
+                border-radius: 16px;
+            }
+            .switch-title {
+                font-size: 10px;
+                margin-bottom: 2px;
+                text-align: center;
+                width: 100%;
+                color: var(--text-secondary);
+            }
+            .switch-items {
+                display: flex;
+                flex-direction: row;
+                gap: 6px;
+                justify-content: center;
+                flex-wrap: nowrap;
+                width: 100%;
+            }
+            .species-item, .panel-item {
+                padding: 3px 8px 3px 3px;
+                min-height: 28px;
+                gap: 3px;
+                background: var(--bg-gray);
+                border-width: 1px;
+                flex-shrink: 0;
+            }
+            .switch-avatar {
+                width: 12px;
+                height: 12px;
+                border-width: 0.5px;
+            }
+            .switch-name {
+                font-size: 8px;
+                white-space: nowrap;
+            }
+            /* 针对极端小屏进一步缩小按钮间距和文字，确保三个按钮完整显示 */
+            @media (max-width: 360px) {
+                .switch-group {
+                    padding: 6px 4px;
+                    gap: 4px;
+                    min-height: 64px;
+                }
+                .switch-title {
+                    font-size: 9px;
+                }
+                .switch-items {
+                    gap: 3px;
+                }
+                .species-item, .panel-item {
+                    padding: 2px 5px 2px 2px;
+                    gap: 2px;
+                }
+                .switch-name {
+                    font-size: 7px;
+                }
+                .switch-avatar {
+                    width: 11px;
+                    height: 11px;
+                }
+            }
+            /* 移动端对比弹窗顶部内边距调整为5px */
+            .compare-inner-wrap {
+                padding-top: 5px !important;
+            }
+            /* 弹窗移动端垂直布局 */
+            .modal-overlay {
+                padding: 8px;
+                align-items: center;
+            }
+            .modal-content {
+                width: calc(100vw - 20px);
+                max-width: 94vw;
+                max-height: 85vh;
+                border-radius: 24px;
+            }
+            .modal-header-custom {
+                padding: 18px 20px 4px 20px;
+            }
+            .modal-title-custom {
+                font-size: 20px;
+            }
+            .modal-subtitle-custom {
+                font-size: 12px;
+            }
+            .modal-content .detail-card {
+                flex-direction: column;
+                align-items: center;
+                text-align: left;
+                margin: 0 16px 20px 16px;
+                padding: 16px 16px;
+                gap: 14px;
+            }
+            .modal-content .modal-zoom-circle {
+                width: 96px;
+                height: 96px;
+                margin-bottom: 0;
+            }
+            .modal-content .modal-text-flex {
+                width: 100%;
+                text-align: left;
+                font-size: 13px;
+                line-height: 1.5;
+                max-height: 200px;
+                overflow-y: auto;
+                padding-right: 0;
+            }
+            /* 极小尺寸适配 */
+            @media (max-height: 400px), (max-width: 340px) {
+                .modal-header-custom {
+                    padding: 12px 16px 2px 16px;
+                }
+                .modal-title-custom {
+                    font-size: 18px;
+                }
+                .modal-subtitle-custom {
+                    font-size: 11px;
+                }
+                .modal-content .detail-card {
+                    margin: 0 12px 16px 12px;
+                    padding: 12px 12px;
+                    gap: 10px;
+                }
+                .modal-content .modal-zoom-circle {
+                    width: 72px;
+                    height: 72px;
+                }
+                .modal-content .modal-text-flex {
+                    font-size: 12px;
+                    max-height: 160px;
+                }
+                .modal-close-btn {
+                    top: 10px;
+                    right: 10px;
+                    width: 28px;
+                    height: 28px;
+                }
+            }
+            /* 中等尺寸舒适比例 */
+            @media (min-height: 420px) and (max-height: 500px) {
+                .modal-content .modal-zoom-circle {
+                    width: 88px;
+                    height: 88px;
+                }
+                .modal-content .modal-text-flex {
+                    max-height: 180px;
+                }
+            }
+            
+            /* 移动端热区位置覆写 (珍珠项圈和嘴部) */
+            .animal-figure .hotspot[onclick*="necklace"] {
+                top: 29% !important;
+                left: 70% !important;
+            }
+            .animal-figure .hotspot[onclick*="beak"] {
+                top: 18% !important;
+                left: 90% !important;
+            }
+            
+            /* 其他原有移动端布局调整 */
+            #app {
+                padding: 4px;
+                gap: 6px;
+                width: 100%;
+                height: 100%;
+            }
+            .view-container {
+                flex-direction: column;
+            }
+            .pose-tabs {
+                top: 10px;
+                padding: 2px;
+                gap: 2px;
+            }
+            .pose-tab {
+                padding: 4px 14px;
+                font-size: 11px;
+            }
+            .ruler, .animal-stage, .compare-stage {
+                top: 18px;
+                bottom: 26px;
+            }
+            .ruler {
+                width: 44px;
+                left: 8px;
+            }
+            .horizon-line {
+                left: 52px;
+                bottom: 26px;
+                right: 10px;
+            }
+            #view0 .animal-stage {
+                left: 52px;
+                right: 10px;
+            }
+            #view1 .compare-stage {
+                left: 52px;
+                right: 10px;
+                gap: 10px;
+            }
+            .animal-name {
+                font-size: 12px;
+                bottom: -20px;
+            }
+            #view1-detail {
+                display: none !important;
+            }
+            .compare-detail-btn {
+                display: inline-flex;
+            }
+            .hotspot {
+                width: 20px !important;
+                height: 20px !important;
+            }
+            .chart-wrapper {
+                min-height: 120px;
+            }
+            canvas#radarChart {
+                max-height: 130px;
+            }
+            .stats-list {
+                transform: translateY(-6px);
+            }
+        }
+        
+        /* 对比弹窗内样式 (PC/移动统一美观) */
+        .compare-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(183,185,193,0.4);
+            border-radius: 12px;
+            background: #fff;
+            padding: 8px 12px;
+        }
+        .compare-label {
+            color: var(--text-secondary);
+            font-weight: 800;
+            width: 65px;
+            font-size: 13px;
+        }
+        .compare-lynx, .compare-target {
+            font-weight: 900;
+            font-size: 13px;
+        }
+        .compare-lynx { color: var(--primary); text-align: right; flex:1; }
+        .compare-target { color: var(--text-secondary); text-align: left; flex:1; }
+        .compare-vs { color: var(--text-tertiary); font-size: 11px; font-weight: 700; margin: 0 8px; }
+    </style>
+</head>
+<body>
+<div id="fit-shell">
+    <div class="bg-glow"></div>
+    <div id="app">
+        <main>
+            <div id="view0" class="view-container active">
+                <div class="panel-visual">
+                    <div class="ruler" id="rulerFront"></div>
+                    <div class="horizon-line"></div>
+                    <div class="pose-tabs">
+                        <button class="pose-tab active" id="poseFrontBtn" onclick="switchPose(0)">正面</button>
+                        <button class="pose-tab" id="poseSideBtn" onclick="switchPose(1)">侧面</button>
+                    </div>
+                    <div class="animal-stage">
+                        <div class="animal-figure active" style="height: 75%">
+                            <img src="./zjbjzm.png" alt="珠颈斑鸠正面" />
+                            <div class="hotspot" style="top: 48%; left: 52%;" onclick="showDetail('plumage')"></div>
+                        </div>
+                        <div class="animal-figure" style="height: 75%">
+                            <img src="./zjbjcm.png" alt="珠颈斑鸠侧面" />
+                            <div class="hotspot" style="top: 27%; left: 59%;" onclick="showDetail('necklace')"></div>
+                            <div class="hotspot" style="top: 18%; left: 68%;" onclick="showDetail('beak')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="view1" class="view-container">
+                <div class="panel-visual">
+                    <div class="ruler" id="rulerCompare"></div>
+                    <div class="horizon-line"></div>
+                    <button class="compare-detail-btn" onclick="showCompareDetail()">详细对比</button>
+                    <div class="compare-stage">
+                        <div class="stage-animal base-animal" style="height: 80%">
+                            <img src="./zjbjcm.png" alt="珠颈斑鸠对比" />
+                            <div class="animal-name base-name">珠颈斑鸠</div>
+                        </div>
+                        <div class="stage-animal target-animal" id="compareTargetContainer">
+                            <img id="compareTargetImg" src="" alt="对比物种" />
+                            <div class="animal-name target-name" id="compareTargetName"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-detail" id="view1-detail">
+                    <div class="data-section">
+                        <div class="chart-wrapper"><canvas id="radarChart"></canvas></div>
+                        <div class="stats-list" id="statsGrid"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <div class="switch-bar">
+            <div class="switch-group feature-group">
+                <div class="switch-title">外形特征</div>
+                <div class="switch-items">
+                    <div class="panel-item active" id="panelFeatureBtn" onclick="switchPanelByAvatar(0)">
+                        <img class="switch-avatar" src="./zjbjzm.png" alt="珠颈斑鸠" />
+                        <span class="switch-name">珠颈斑鸠</span>
+                    </div>
+                </div>
+            </div>
+            <div class="switch-group">
+                <div class="switch-title">物种对比</div>
+                <div class="switch-items">
+                    <div class="species-item" onclick="switchPanelByAvatar(1, 'hwamei')" data-key="hwamei">
+                        <img class="switch-avatar" src="./hm.png" alt="画眉" />
+                        <span class="switch-name">画眉</span>
+                    </div>
+                    <div class="species-item" onclick="switchPanelByAvatar(1, 'greyPigeon')" data-key="greyPigeon">
+                        <img class="switch-avatar" src="./hgz.png" alt="灰鸽子" />
+                        <span class="switch-name">灰鸽子</span>
+                    </div>
+                    <div class="species-item" onclick="switchPanelByAvatar(1, 'myna')" data-key="myna">
+                        <img class="switch-avatar" src="./bg.png" alt="八哥" />
+                        <span class="switch-name">八哥</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay" id="infoModal" onclick="closeModal()">
+            <div class="modal-content" id="modalContent" onclick="event.stopPropagation()"></div>
+        </div>
+    </div>
+</div>
+<script>
+    // ================= 珠颈斑鸠科普数据 =================
+    const MAX_H = 60;
+    const MAX_W = 0.5;
+    const MAX_WING = 70;
+    const MAX_TAIL = 20;
+    const MAX_AGE = 18;
+
+    function normValue(value, max) {
+        return Math.min(100, (value / max) * 100);
+    }
+
+    const animalData = {
+        spottedDove: { name: "珠颈斑鸠", height: 30, weight: 0.25, wingspan: 55, tailLen: 15, lifespan: 12, img: "./zjbjcm.png" },
+        hwamei: { name: "画眉", height: 24, weight: 0.07, wingspan: 34, tailLen: 10, lifespan: 8, img: "./hm.png" },
+        greyPigeon: { name: "灰鸽子", height: 32, weight: 0.30, wingspan: 58, tailLen: 13, lifespan: 15, img: "./hgz.png" },
+        myna: { name: "八哥", height: 26, weight: 0.18, wingspan: 45, tailLen: 12, lifespan: 10, img: "./bg.png" }
+    };
+
+    const radarMap = {
+        spottedDove: [ normValue(30, MAX_H), normValue(0.25, MAX_W), normValue(55, MAX_WING), normValue(15, MAX_TAIL), normValue(12, MAX_AGE) ],
+        hwamei: [ normValue(24, MAX_H), normValue(0.07, MAX_W), normValue(34, MAX_WING), normValue(10, MAX_TAIL), normValue(8, MAX_AGE) ],
+        greyPigeon: [ normValue(32, MAX_H), normValue(0.30, MAX_W), normValue(58, MAX_WING), normValue(13, MAX_TAIL), normValue(15, MAX_AGE) ],
+        myna: [ normValue(26, MAX_H), normValue(0.18, MAX_W), normValue(45, MAX_WING), normValue(12, MAX_TAIL), normValue(10, MAX_AGE) ]
+    };
+
+    const detailData = {
+        necklace: { title: "珍珠项圈", sub: "标志性颈斑", text: "珠颈斑鸠最独特的特征是颈部两侧布满黑白相间的细小珠状斑点，如同华丽的珍珠项链，成年个体尤为醒目。", zoomImage: "./bz.png" },
+        plumage: { title: "柔和羽衣", sub: "粉褐至灰褐色", text: "体羽主要为粉褐色，翼覆羽具浅棕色鳞状斑，飞行时尾羽末端呈现白色宽边，低调而雅致。", zoomImage: "./ym.png" },
+        beak: { title: "暗褐色喙", sub: "精巧取食工具", text: "喙短而纤细，基部稍肿胀，暗褐色；适合啄食谷物、草籽及小型无脊椎动物，进食时节奏轻快。", zoomImage: "./zui.png" }
+    };
+
+    let currentCompareKey = "hwamei";
+    let radarChartInstance = null;
+    let compareRequestId = 0;
+
+    function renderFrontRuler() {
+        const ticks = [40, 30, 20, 10, 0];
+        const html = ticks.map(val => `<div class="ruler-tick ${val % 20 === 0 ? 'major' : ''}" style="top: ${(1 - val / 40) * 100}%;" data-val="${val}cm"></div>`).join('');
+        document.getElementById("rulerFront").innerHTML = html;
+    }
+
+    function renderCompareRuler() {
+        const ticks = [60, 45, 30, 15, 0];
+        const html = ticks.map(val => `<div class="ruler-tick ${val % 30 === 0 ? 'major' : ''}" style="top: ${(1 - val / 60) * 100}%;" data-val="${val}cm"></div>`).join('');
+        document.getElementById("rulerCompare").innerHTML = html;
+    }
+
+    function getHeightPercent(cm, isCompare = false) {
+        const max = isCompare ? 60 : 40;
+        return `${Math.max(0, Math.min(100, (cm / max) * 100))}%`;
+    }
+
+    function switchTab(index) {
+        const views = document.querySelectorAll(".view-container");
+        views.forEach((view, i) => view.classList.toggle("active", i === index));
+        if (index === 1 && radarChartInstance) {
+            radarChartInstance.resize();
+            triggerRadarAnimation(currentCompareKey);
+        }
+    }
+
+    function switchPanelByAvatar(index, speciesKey) {
+        const featureBtn = document.getElementById("panelFeatureBtn");
+        const speciesItems = document.querySelectorAll(".species-item");
+        featureBtn.classList.toggle("active", index === 0);
+        speciesItems.forEach(item => {
+            if (index === 1 && speciesKey) item.classList.toggle("active", item.getAttribute("data-key") === speciesKey);
+            else item.classList.remove("active");
+        });
+        switchTab(index);
+        if (index === 1 && speciesKey) selectAnimal(speciesKey);
+    }
+
+    function switchPose(index) {
+        const figs = document.querySelectorAll(".animal-figure");
+        const frontBtn = document.getElementById("poseFrontBtn"), sideBtn = document.getElementById("poseSideBtn");
+        figs.forEach((fig, i) => fig.classList.toggle("active", i === index));
+        frontBtn.classList.toggle("active", index === 0);
+        sideBtn.classList.toggle("active", index === 1);
+    }
+
+    function updateStatsGrid(key) {
+        const dT = animalData[key], dA = animalData["spottedDove"];
+        const rows = [
+            { l: "身高", a: dA.height, t: dT.height, u: "cm" },
+            { l: "体重", a: dA.weight, t: dT.weight, u: "kg" },
+            { l: "翼展", a: dA.wingspan, t: dT.wingspan, u: "cm" },
+            { l: "尾长", a: dA.tailLen, t: dT.tailLen, u: "cm" },
+            { l: "寿命", a: dA.lifespan, t: dT.lifespan, u: "年" }
+        ];
+        const grid = document.getElementById("statsGrid");
+        grid.innerHTML = `<div class="stat-row stat-header"><span class="stat-label"></span><span class="stat-base">珠颈斑鸠</span><span class="stat-vs" style="opacity:0">VS</span><span class="stat-target">${dT.name}</span></div>` +
+            rows.map(r => `<div class="stat-row"><span class="stat-label">${r.l}</span><span class="stat-base">${r.a}<span class="stat-unit">${r.u}</span></span><span class="stat-vs">VS</span><span class="stat-target">${r.t}<span class="stat-unit">${r.u}</span></span></div>`).join("");
+    }
+
+    function selectAnimal(key) {
+        currentCompareKey = key;
+        const target = animalData[key];
+        const targetImgEl = document.getElementById("compareTargetImg");
+        const targetContainer = document.getElementById("compareTargetContainer");
+        const targetNameEl = document.getElementById("compareTargetName");
+        const reqId = ++compareRequestId;
+        targetImgEl.style.opacity = 0;
+        triggerRadarAnimation(key);
+        const img = new Image();
+        img.onload = img.onerror = () => {
+            if (reqId !== compareRequestId) return;
+            targetImgEl.src = target.img;
+            targetContainer.style.height = getHeightPercent(target.height, true);
+            targetNameEl.innerText = target.name;
+            requestAnimationFrame(() => { targetImgEl.style.opacity = 1; });
+        };
+        img.src = target.img;
+        updateStatsGrid(key);
+        if (radarChartInstance) {
+            radarChartInstance.data.datasets[1].label = target.name;
+            radarChartInstance.update();
+        }
+    }
+
+    function initChart() {
+        const ctx = document.getElementById("radarChart").getContext("2d");
+        radarChartInstance = new Chart(ctx, {
+            type: "radar",
+            data: {
+                labels: ["身高", "体重", "翼展", "尾长", "寿命"],
+                datasets: [
+                    { label: "珠颈斑鸠", data: radarMap["spottedDove"], backgroundColor: "rgba(105, 139, 250, 0.25)", borderColor: "rgba(105, 139, 250, 1)", pointBackgroundColor: "rgba(105, 139, 250, 1)", borderWidth: 2, pointRadius: 0 },
+                    { label: "画眉", data: radarMap["hwamei"], backgroundColor: "rgba(132, 134, 145, 0.15)", borderColor: "rgba(132, 134, 145, 0.6)", borderDash: [4, 4], borderWidth: 2, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                layout: { padding: window.innerWidth < 600 ? 10 : 15 },
+                animation: { duration: 500, easing: "easeOutQuart" },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: {
+                    r: {
+                        angleLines: { color: "rgba(0,0,0,0.06)" },
+                        grid: { color: "rgba(0,0,0,0.06)" },
+                        pointLabels: { font: { size: 9, weight: "bold" }, color: "#848691" },
+                        ticks: { display: false, min: 0, max: 100 }
+                    }
+                }
+            }
+        });
+        updateStatsGrid("hwamei");
+    }
+
+    function triggerRadarAnimation(key) {
+        if (!radarChartInstance) return;
+        radarChartInstance.data.datasets[1].data = [0, 0, 0, 0, 0];
+        radarChartInstance.update("none");
+        setTimeout(() => {
+            radarChartInstance.data.datasets[1].data = radarMap[key];
+            radarChartInstance.update();
+        }, 30);
+    }
+
+    function showDetail(key) {
+        const detail = detailData[key];
+        const modalContent = document.getElementById("modalContent");
+        modalContent.innerHTML = `
+            <button class="modal-close-btn" onclick="closeModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+            <div class="modal-header-custom">
+                <h3 class="modal-title-custom">${detail.title}</h3>
+                <p class="modal-subtitle-custom">${detail.sub}</p>
+            </div>
+            <div class="detail-card">
+                <div class="modal-zoom-circle">
+                    <img src="${detail.zoomImage}" alt="特征细节">
+                </div>
+                <div class="modal-text-flex">${detail.text}</div>
+            </div>
+        `;
+        modalContent.classList.remove("is-compare");
+        document.getElementById("infoModal").classList.add("active");
+    }
+
+    function showCompareDetail() {
+        const key = currentCompareKey;
+        const dT = animalData[key], dA = animalData["spottedDove"];
+        const rows = [
+            { l: "身高", a: dA.height, t: dT.height, u: "cm" },
+            { l: "体重", a: dA.weight, t: dT.weight, u: "kg" },
+            { l: "翼展", a: dA.wingspan, t: dT.wingspan, u: "cm" },
+            { l: "尾长", a: dA.tailLen, t: dT.tailLen, u: "cm" },
+            { l: "寿命", a: dA.lifespan, t: dT.lifespan, u: "年" }
+        ];
+        const modalContent = document.getElementById("modalContent");
+        modalContent.innerHTML = `
+            <button class="modal-close-btn" onclick="closeModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <div class="compare-inner-wrap" style="padding: 24px 20px 20px 20px;">
+                <h3 style="font-size: 22px; font-weight: 900; color: var(--primary); margin-bottom: 2px;">参数对比</h3>
+                <p style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 20px;">珠颈斑鸠 vs ${dT.name}</p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    ${rows.map(r => `
+                        <div class="compare-row">
+                            <span class="compare-label">${r.l}</span>
+                            <span class="compare-lynx">${r.a} <span style="font-size: 10px;">${r.u}</span></span>
+                            <span class="compare-vs">VS</span>
+                            <span class="compare-target">${r.t} <span style="font-size: 10px;">${r.u}</span></span>
+                        </div>
+                    `).join("")}
+                </div>
+            </div>
+        `;
+        modalContent.classList.add("is-compare");
+        document.getElementById("infoModal").classList.add("active");
+    }
+
+    function closeModal() {
+        document.getElementById("infoModal").classList.remove("active");
+    }
+
+    function applyFrameFit() {
+        const app = document.getElementById("app");
+        const isDesktop = window.innerWidth >= 600 && window.innerHeight >= 420;
+        if (isDesktop) {
+            const baseW = 788, baseH = 492;
+            const scale = Math.min(window.innerWidth / baseW, window.innerHeight / baseH);
+            app.style.width = `${baseW}px`;
+            app.style.height = `${baseH}px`;
+            app.style.transform = `scale(${scale})`;
+        } else {
+            app.style.width = `${window.innerWidth}px`;
+            app.style.height = `${window.innerHeight}px`;
+            app.style.transform = "scale(1)";
+        }
+        if (radarChartInstance) radarChartInstance.resize();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+        applyFrameFit();
+        renderFrontRuler();
+        renderCompareRuler();
+        initChart();
+        switchPose(0);
+        const baseAnimalDiv = document.querySelector(".base-animal");
+        if (baseAnimalDiv) baseAnimalDiv.style.height = getHeightPercent(animalData.spottedDove.height, true);
+        selectAnimal("hwamei");
+        document.querySelector(".species-item[data-key='hwamei']").classList.add("active");
+        window.addEventListener("resize", () => { applyFrameFit(); if (radarChartInstance) radarChartInstance.resize(); });
+    });
+</script>
+</body>
+</html>
