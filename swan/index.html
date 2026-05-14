@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>天鹅 (Swan) - 交互式科普 | 身形投影对比</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #3B82F6;
+            --primary-light: rgba(59,130,246,0.12);
+            --bg-white: #FFFFFF;
+            --bg-gray: #FFFFFF;
+            --text-main: #1E293B;
+            --text-secondary: #64748B;
+            --text-tertiary: #94A3B8;
+            --transition: all 0.28s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text-main);
+        }
+
+        #fit-shell {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            background: #FFFFFF;
+        }
+
+        #app {
+            position: relative;
+            z-index: 1;
+            width: 788px;
+            height: 492px;
+            overflow: hidden;
+            background: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+            transform-origin: center center;
+        }
+
+        main {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        .switch-bar {
+            height: 76px;
+            flex-shrink: 0;
+            display: grid;
+            grid-template-columns: 0.64fr 1.36fr;
+            gap: 8px;
+        }
+
+        .switch-group {
+            background: #FFFFFF;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 10px;
+            min-width: 0;
+        }
+
+        .switch-group.feature-group {
+            justify-content: center;
+        }
+
+        .switch-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .switch-items {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+
+        .panel-item,
+        .species-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px 4px 4px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: #FFFFFF;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-secondary);
+            min-height: 34px;
+        }
+
+        .panel-item.active,
+        .species-item.active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .switch-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: contain;
+            border: 2px solid transparent;
+            flex-shrink: 0;
+            background-color: #f0f2f5;
+        }
+
+        .panel-item.active .switch-avatar,
+        .species-item.active .switch-avatar {
+            border-color: var(--primary);
+        }
+
+        .switch-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: inherit;
+            white-space: nowrap;
+        }
+
+        .view-container {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            gap: 10px;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.992);
+            transition: var(--transition);
+        }
+
+        .view-container.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        .panel {
+            background: #FFFFFF;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel-visual {
+            flex: 1.42;
+            position: relative;
+            min-width: 0;
+        }
+
+        .panel-detail {
+            flex: 1;
+            min-width: 0;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: visible;
+        }
+
+        @media (min-width: 600px) {
+            .panel-detail {
+                padding: 10px 10px 8px 10px;
+            }
+            .stats-list {
+                gap: 4px;
+            }
+            .stat-row {
+                padding: 4px 8px;
+                font-size: 11px;
+                border-radius: 7px;
+                line-height: 1.3;
+            }
+            .stat-header {
+                padding: 0 6px 4px 6px !important;
+            }
+            .stat-header .stat-lynx,
+            .stat-header .stat-target {
+                font-size: 12px !important;
+            }
+            .stat-label {
+                width: 38px;
+                font-size: 11px;
+            }
+            .stat-lynx, .stat-target {
+                font-size: 11px;
+            }
+            .stat-vs {
+                font-size: 8px;
+                margin: 0 5px;
+            }
+            .chart-wrapper {
+                margin-bottom: 6px;
+            }
+            canvas#radarChart {
+                max-height: 140px;
+            }
+        }
+
+        .stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            background: #F8FAFF;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .stat-header {
+            background: transparent !important;
+            padding: 0 8px 6px 8px !important;
+        }
+
+        .stat-header .stat-lynx,
+        .stat-header .stat-target {
+            font-size: 14px !important;
+            font-weight: 800 !important;
+        }
+
+        .stat-label {
+            width: 42px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .stat-lynx {
+            flex: 1;
+            text-align: right;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .stat-vs {
+            margin: 0 8px;
+            font-size: 9px;
+            color: var(--text-tertiary);
+            font-weight: 700;
+        }
+
+        .stat-target {
+            flex: 1;
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+
+        .ruler, .swan-stage {
+            position: absolute;
+            top: 34px;
+            bottom: 32px;
+        }
+
+        #view1 .ruler,
+        #view1 .compare-stage {
+            position: absolute;
+            top: 34px;
+            bottom: 37px;
+        }
+
+        #view1 .horizon-line {
+            bottom: 37px;
+        }
+
+        .ruler {
+            left: 10px;
+            width: 56px;
+            border-right: 1px solid rgba(148, 163, 184, 0.8);
+            z-index: 5;
+        }
+
+        @media (min-width: 600px) {
+            #view1 .ruler {
+                left: 2px !important;
+            }
+            #view1 .horizon-line {
+                left: 58px !important;
+            }
+        }
+
+        .ruler-tick {
+            position: absolute;
+            right: 0;
+            width: 6px;
+            height: 1px;
+            background: var(--text-tertiary);
+        }
+
+        .ruler-tick::before {
+            content: attr(data-val);
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-family: monospace;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .ruler-tick.major {
+            width: 12px;
+            background: var(--text-secondary);
+        }
+
+        .horizon-line {
+            position: absolute;
+            left: 66px;
+            right: 10px;
+            bottom: 32px;
+            height: 1px;
+            background: rgba(148, 163, 184, 0.8);
+            z-index: 1;
+        }
+
+        .swan-stage {
+            left: 73px;
+            right: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 2;
+        }
+
+        .swan-figure {
+            position: relative;
+            display: none;
+            height: auto;
+            width: 100%;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .swan-figure.active {
+            display: flex;
+        }
+
+        .swan-figure img {
+            height: 100%;
+            width: auto;
+            display: block;
+            object-fit: contain;
+            object-position: bottom center;
+        }
+
+        @media (max-width: 599px) {
+            #swanSideFigure {
+                position: relative;
+                left: -8px;
+            }
+            #swanFrontFigure {
+                left: 0px;
+            }
+            #swanSideFigure .hotspot:first-of-type {
+                left: 66% !important;
+            }
+        }
+
+        .pose-tabs {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 12;
+            display: inline-flex;
+            gap: 6px;
+            padding: 3px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            background: #FFFFFF;
+        }
+
+        .pose-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 4px 12px;
+            cursor: pointer;
+        }
+
+        .pose-tab.active {
+            background: #F8FAFF;
+            color: var(--text-main);
+        }
+
+        .hotspot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: 2px solid var(--primary);
+            cursor: pointer;
+            transform: translate(-50%, 50%);
+            animation: attractPulse 2s infinite ease-out;
+            z-index: 10;
+        }
+
+        @keyframes attractPulse {
+            0% { box-shadow: 0 0 0 0 rgba(59,130,246, 0.45); }
+            70% { box-shadow: 0 0 0 10px rgba(59,130,246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59,130,246, 0); }
+        }
+
+        .compare-stage {
+            left: 50px;
+            right: 10px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 22px;
+            padding: 0 18px;
+            z-index: 2;
+            overflow: visible;
+        }
+
+        .stage-animal {
+            position: relative;
+            width: min(44%, 220px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            overflow: visible;
+        }
+
+        .stage-animal img {
+            height: 100%;
+            width: auto;
+            max-width: none;
+            display: block;
+            object-fit: contain;
+            object-position: bottom center;
+        }
+
+        .animal-name {
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: center;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 10px;
+            border-radius: 20px;
+            backdrop-filter: blur(2px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            pointer-events: none;
+            z-index: 12;
+        }
+
+        .base-animal .animal-name {
+            color: var(--primary);
+        }
+
+        .compare-detail-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 25;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            background: #FFFFFF;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 5px 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* ========== 对比图片偏移（PC与移动端分别设定，通过媒体查询自动切换） ========== */
+        .base-animal {
+            transform: translateX(8px);
+        }
+        .target-animal {
+            transform: translateX(15px);
+        }
+
+        @media (max-width: 599px) {
+            .base-animal {
+                transform: translateX(12px) !important;
+            }
+            .target-animal {
+                transform: translateX(23px) !important;
+            }
+        }
+
+        /* ========== 移动端导航栏自适应三种尺寸 ========== */
+        /* 基础移动端样式 (宽度 ≤ 599px) */
+        @media (max-width: 599px) {
+            .switch-bar {
+                gap: 6px;
+            }
+            .switch-group {
+                gap: 6px;
+                padding: 6px 8px;
+            }
+            .switch-title {
+                font-size: 10px;
+            }
+            .switch-items {
+                gap: 4px;
+            }
+            .panel-item, .species-item {
+                padding: 2px 6px 2px 3px;
+                gap: 4px;
+                min-height: 28px;
+            }
+            .switch-avatar {
+                width: 18px;
+                height: 18px;
+            }
+            .switch-name {
+                font-size: 11px;
+            }
+        }
+
+        /* 中等尺寸（宽度 360px - 399px，例如 380、396）使用稍大字体和间距 */
+        @media (min-width: 360px) and (max-width: 399px) {
+            .switch-bar {
+                gap: 7px;
+            }
+            .switch-group {
+                gap: 7px;
+                padding: 8px 10px;
+            }
+            .switch-title {
+                font-size: 12px;
+            }
+            .switch-items {
+                gap: 6px;
+            }
+            .panel-item, .species-item {
+                padding: 3px 8px 3px 4px;
+                gap: 5px;
+                min-height: 32px;
+            }
+            .switch-avatar {
+                width: 22px;
+                height: 22px;
+            }
+            .switch-name {
+                font-size: 12px;
+            }
+        }
+
+        /* 较大尺寸（宽度 400px - 599px，例如 396*475中宽部分，但396仍属于中等，为保证396已覆盖，再加400以上适配更大屏幕） */
+        @media (min-width: 400px) and (max-width: 599px) {
+            .switch-bar {
+                gap: 8px;
+            }
+            .switch-group {
+                gap: 8px;
+                padding: 10px 12px;
+            }
+            .switch-title {
+                font-size: 13px;
+            }
+            .switch-items {
+                gap: 8px;
+            }
+            .panel-item, .species-item {
+                padding: 4px 12px 4px 6px;
+                gap: 6px;
+                min-height: 36px;
+            }
+            .switch-avatar {
+                width: 24px;
+                height: 24px;
+            }
+            .switch-name {
+                font-size: 13px;
+            }
+        }
+
+        /* 兼容窄屏 300-359px (原有紧凑样式进一步微调) */
+        @media (max-width: 359px) {
+            .switch-bar {
+                gap: 4px;
+            }
+            .switch-group {
+                gap: 4px;
+                padding: 4px 5px;
+            }
+            .switch-title {
+                font-size: 9px;
+            }
+            .switch-items {
+                gap: 3px;
+            }
+            .panel-item, .species-item {
+                padding: 2px 5px 2px 2px;
+                gap: 3px;
+                min-height: 26px;
+            }
+            .switch-avatar {
+                width: 15px;
+                height: 15px;
+            }
+            .switch-name {
+                font-size: 9px;
+            }
+        }
+
+        /* 移动端其他样式调整 */
+        @media (max-width: 599px) {
+            /* 保持原有其他移动端样式不冲突 */
+            #view0 .ruler {
+                left: 2px !important;
+            }
+            #view0 .horizon-line {
+                left: 58px !important;
+            }
+            #view1 .ruler {
+                left: 0px !important;
+            }
+            #view1 .horizon-line {
+                left: 56px !important;
+            }
+
+            .compare-detail-btn { display: inline-flex; }
+            .panel-detail { display: none !important; }
+            .compare-stage { gap: 12px; padding: 0 8px; }
+            .stage-animal.base-animal,
+            .stage-animal.target-animal { width: 45%; }
+            .animal-name { font-size: 10px; white-space: nowrap; bottom: -24px; }
+            #view1 .ruler, #view1 .compare-stage { bottom: 37px; }
+            #view1 .horizon-line { bottom: 37px; }
+
+            .switch-group:last-child {
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .switch-group:last-child .switch-title {
+                margin-bottom: 2px;
+                text-align: center;
+                width: 100%;
+            }
+            .switch-group:last-child .switch-items {
+                flex-wrap: nowrap;
+                justify-content: center;
+                width: 100%;
+                overflow-x: visible;
+            }
+            .switch-group.feature-group {
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .switch-group.feature-group .switch-title {
+                margin-bottom: 2px;
+                text-align: center;
+                width: 100%;
+            }
+            .switch-group.feature-group .switch-items {
+                justify-content: center;
+            }
+        }
+
+        .chart-wrapper {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: center;
+        }
+        canvas#radarChart {
+            max-width: 100%;
+            max-height: 160px;
+            width: auto !important;
+            height: auto !important;
+        }
+
+        /* 弹层样式 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background: #FFFFFF;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            padding: 20px;
+            border-radius: 24px;
+            width: min(92vw, 480px);
+            max-width: 480px;
+            position: relative;
+            transform: scale(0.96);
+            transition: transform 0.2s;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 50%;
+            background: #F1F5F9;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-header {
+            padding-right: 30px;
+            margin-bottom: 12px;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .modal-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .modal-content:not(.is-compare) .modal-detail-layout {
+            background-color: #F8F8F8;
+            border-radius: 24px;
+            padding: 16px 12px;
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            gap: 14px;
+            align-items: center;
+        }
+        .modal-zoom {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: 3px solid rgba(59,130,246,0.2);
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+            background-color: #F8FAFF;
+            margin: 0 auto;
+        }
+        .modal-text {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+        .modal-content.is-compare .modal-detail-layout {
+            display: none;
+        }
+        .modal-content.is-compare .modal-compare-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .compare-row {
+            display: grid;
+            grid-template-columns: 56px 1fr auto 1fr;
+            gap: 8px;
+            padding: 8px;
+            background: #F8FAFF;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .compare-label {
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+        .compare-lynx {
+            text-align: right;
+            color: var(--primary);
+            font-weight: 800;
+        }
+        .compare-vs {
+            color: var(--text-tertiary);
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .compare-target {
+            text-align: left;
+            color: var(--text-main);
+            font-weight: 800;
+        }
+        @media (max-width: 599px) {
+            .modal-content:not(.is-compare) .modal-detail-layout {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 14px 12px;
+            }
+            .modal-zoom {
+                width: 110px;
+                height: 110px;
+            }
+            /* 移动端热点弹窗文本改为左对齐 */
+            .modal-text {
+                text-align: left;
+                font-size: 12px;
+            }
+            .compare-row {
+                grid-template-columns: 50px 1fr auto 1fr;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="fit-shell">
+<div id="app">
+    <main>
+        <!-- 外形特征视图 -->
+        <div id="view0" class="view-container active">
+            <div class="panel panel-visual">
+                <div class="ruler">
+                    <div class="ruler-tick major" style="top: 0%;" data-val="200cm"></div>
+                    <div class="ruler-tick" style="top: 25%;" data-val="150cm"></div>
+                    <div class="ruler-tick major" style="top: 50%;" data-val="100cm"></div>
+                    <div class="ruler-tick" style="top: 75%;" data-val="50cm"></div>
+                    <div class="ruler-tick major" style="top: 100%;" data-val="0cm"></div>
+                </div>
+                <div class="horizon-line"></div>
+                <div class="pose-tabs">
+                    <button class="pose-tab active" onclick="switchPose(0)">正面</button>
+                    <button class="pose-tab" onclick="switchPose(1)">侧面</button>
+                </div>
+                <div class="swan-stage">
+                    <div class="swan-figure active" id="swanFrontFigure">
+                        <img id="swanFrontImg" src="tezm.png" alt="天鹅正面" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 150\'%3E%3Cpath fill=\'%23F2F4F3\' stroke=\'%233B82F6\' d=\'M70,100 Q80,40 100,45 Q120,40 130,100 L120,110 L80,110 Z\'/%3E%3C/svg%3E'">
+                        <div class="hotspot" style="bottom: 88%; left: 50%;" onclick="showDetail('bill')"></div>
+                    </div>
+                    <div class="swan-figure" id="swanSideFigure">
+                        <img id="swanSideImg" src="tecm.png" alt="天鹅侧面" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 150\'%3E%3Cpath fill=\'%23F2F4F3\' stroke=\'%233B82F6\' d=\'M110,80 Q140,40 170,55 Q175,70 165,90 L120,110 L100,100 Z\'/%3E%3C/svg%3E'">
+                        <div class="hotspot" style="bottom: 70%; left: 57%;" onclick="showDetail('neck')"></div>
+                        <div class="hotspot" style="bottom: 38%; left: 50%;" onclick="showDetail('wing')"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 物种对比视图 -->
+        <div id="view1" class="view-container">
+            <div class="panel panel-visual">
+                <div class="ruler">
+                    <div class="ruler-tick major" style="top: 0%;" data-val="200cm"></div>
+                    <div class="ruler-tick" style="top: 25%;" data-val="150cm"></div>
+                    <div class="ruler-tick major" style="top: 50%;" data-val="100cm"></div>
+                    <div class="ruler-tick" style="top: 75%;" data-val="50cm"></div>
+                    <div class="ruler-tick major" style="top: 100%;" data-val="0cm"></div>
+                </div>
+                <div class="horizon-line"></div>
+                <button class="compare-detail-btn" onclick="showCompareDetail()">详细对比</button>
+                <div class="compare-stage">
+                    <div class="stage-animal base-animal" id="baseAnimalContainer">
+                        <img id="baseAnimalImg" src="tecm.png" alt="天鹅" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Cpath fill=\'%23F2F4F3\' d=\'M30,70 L50,20 L70,70 L60,80 L40,80 Z\'/%3E%3C/svg%3E'">
+                        <div class="animal-name">天鹅</div>
+                    </div>
+                    <div class="stage-animal target-animal" id="compareTargetContainer">
+                        <img id="compareTargetImg" src="ddh.png" alt="丹顶鹤" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'%3E%3Cpath fill=\'%23B0C4C0\' d=\'M20,70 L40,25 L60,70 L50,75 L30,75 Z\'/%3E%3C/svg%3E'">
+                        <div class="animal-name" id="compareTargetName">丹顶鹤</div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-detail" id="view1-detail">
+                <div class="chart-wrapper">
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <div class="stats-list" id="statsGrid"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="switch-bar">
+        <div class="switch-group feature-group">
+            <div class="switch-title">外形特征</div>
+            <div class="switch-items">
+                <div class="panel-item active" onclick="switchPanelByAvatar(0)">
+                    <img class="switch-avatar" src="tezm.png" alt="天鹅" onerror="this.src='data:image/svg+xml,%3Csvg viewBox=\'0 0 40 40\'%3E%3Ccircle fill=\'%23CBD5E1\' cx=\'20\' cy=\'20\' r=\'18\'/%3E%3C/svg%3E'">
+                    <span class="switch-name">天鹅</span>
+                </div>
+            </div>
+        </div>
+        <div class="switch-group">
+            <div class="switch-title">物种对比</div>
+            <div class="switch-items">
+                <div class="species-item" onclick="switchPanelByAvatar(1, 'crane')" data-key="crane">
+                    <img class="switch-avatar" src="ddh.png" alt="丹顶鹤" onerror="this.src='data:image/svg+xml,%3Csvg viewBox=\'0 0 40 40\'%3E%3Ccircle fill=\'%2394A3B8\' cx=\'20\' cy=\'20\' r=\'18\'/%3E%3C/svg%3E'">
+                    <span class="switch-name">丹顶鹤</span>
+                </div>
+                <div class="species-item" onclick="switchPanelByAvatar(1, 'heron')" data-key="heron">
+                    <img class="switch-avatar" src="cl.png" alt="苍鹭" onerror="this.src='data:image/svg+xml,%3Csvg viewBox=\'0 0 40 40\'%3E%3Ccircle fill=\'%2381A4C9\' cx=\'20\' cy=\'20\' r=\'18\'/%3E%3C/svg%3E'">
+                    <span class="switch-name">苍鹭</span>
+                </div>
+                <div class="species-item" onclick="switchPanelByAvatar(1, 'bustard')" data-key="bustard">
+                    <img class="switch-avatar" src="db.png" alt="大鸨" onerror="this.src='data:image/svg+xml,%3Csvg viewBox=\'0 0 40 40\'%3E%3Ccircle fill=\'%23728C74\' cx=\'20\' cy=\'20\' r=\'18\'/%3E%3C/svg%3E'">
+                    <span class="switch-name">大鸨</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹层 -->
+    <div class="modal-overlay" id="infoModal" onclick="closeModal()">
+        <div class="modal-content" id="modalContent" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">修长S形颈</div>
+                <div class="modal-subtitle" id="modalSubtitle">外形细节说明</div>
+            </div>
+            <div class="modal-detail-layout">
+                <div class="modal-zoom" id="modalZoom"></div>
+                <div class="modal-text" id="modalText">天鹅颈部细长，呈优雅的S形曲线，共由23-25块颈椎组成，使其能够灵活潜水觅食，姿态高洁。</div>
+            </div>
+            <div class="modal-compare-list" id="modalCompareList"></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    const COMPARE_MAX_CM = 200;
+    const realData = {
+        swan: { name: '天鹅', height: 150, weight: '10 kg', wingspan: '225 cm', tail: '18 cm', lifespan: '25 年', img: 'tecm.png' },
+        crane: { name: '丹顶鹤', height: 150, weight: '10 kg', wingspan: '220 cm', tail: '15 cm', lifespan: '50 年', img: 'ddh.png' },
+        heron: { name: '苍鹭', height: 95, weight: '1.5 kg', wingspan: '175 cm', tail: '12 cm', lifespan: '20 年', img: 'cl.png' },
+        bustard: { name: '大鸨', height: 100, weight: '12 kg', wingspan: '220 cm', tail: '20 cm', lifespan: '15 年', img: 'db.png' }
+    };
+
+    function getHeightPercentByLength(cm) {
+        let pct = (cm / COMPARE_MAX_CM) * 100;
+        return `${Math.min(100, Math.max(20, pct))}%`;
+    }
+
+    const chartDataMap = {
+        swan: [75, 50, 80, 45, 50],
+        crane: [75, 50, 78, 38, 100],
+        heron: [48, 8, 62, 30, 40],
+        bustard: [50, 60, 78, 50, 30]
+    };
+
+    let radarChartInstance = null;
+    function initChart() {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        radarChartInstance = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['身高', '体重', '翼展', '尾长', '寿命'],
+                datasets: [
+                    { label: '天鹅', data: chartDataMap.swan, backgroundColor: 'rgba(59,130,246,0.25)', borderColor: '#3B82F6', borderWidth: 2, pointRadius: 0 },
+                    { label: '对比物种', data: chartDataMap.crane, backgroundColor: 'rgba(100,116,139,0.2)', borderColor: '#64748B', borderWidth: 2, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { r: { ticks: { display: false }, pointLabels: { font: { size: 10, weight: 'bold' } } } }
+            }
+        });
+        updateStatsGrid('crane');
+        updateAnimalHeight();
+    }
+
+    function updateStatsGrid(key) {
+        const grid = document.getElementById('statsGrid');
+        const dTarget = realData[key];
+        const dSwan = realData.swan;
+        grid.innerHTML = `
+            <div class="stat-row stat-header">
+                <span class="stat-label"></span>
+                <span class="stat-lynx">天鹅</span>
+                <span class="stat-vs" style="opacity:0;">VS</span>
+                <span class="stat-target">${dTarget.name}</span>
+            </div>
+            <div class="stat-row"><span class="stat-label">身高</span><span class="stat-lynx">${dSwan.height} cm</span><span class="stat-vs">VS</span><span class="stat-target">${dTarget.height} cm</span></div>
+            <div class="stat-row"><span class="stat-label">体重</span><span class="stat-lynx">${dSwan.weight}</span><span class="stat-vs">VS</span><span class="stat-target">${dTarget.weight}</span></div>
+            <div class="stat-row"><span class="stat-label">翼展</span><span class="stat-lynx">${dSwan.wingspan}</span><span class="stat-vs">VS</span><span class="stat-target">${dTarget.wingspan}</span></div>
+            <div class="stat-row"><span class="stat-label">尾长</span><span class="stat-lynx">${dSwan.tail}</span><span class="stat-vs">VS</span><span class="stat-target">${dTarget.tail}</span></div>
+            <div class="stat-row"><span class="stat-label">寿命</span><span class="stat-lynx">${dSwan.lifespan}</span><span class="stat-vs">VS</span><span class="stat-target">${dTarget.lifespan}</span></div>
+        `;
+    }
+
+    function setSwanVisualHeight() {
+        const swanHeightPercent = getHeightPercentByLength(realData.swan.height);
+        const frontDiv = document.getElementById('swanFrontFigure');
+        const sideDiv = document.getElementById('swanSideFigure');
+        if (frontDiv) frontDiv.style.height = swanHeightPercent;
+        if (sideDiv) sideDiv.style.height = swanHeightPercent;
+    }
+
+    function updateAnimalHeight() {
+        const baseContainer = document.getElementById('baseAnimalContainer');
+        const targetContainer = document.getElementById('compareTargetContainer');
+        if (baseContainer) baseContainer.style.height = getHeightPercentByLength(realData.swan.height);
+        if (targetContainer && currentCompareKey) {
+            targetContainer.style.height = getHeightPercentByLength(realData[currentCompareKey]?.height || 150);
+        }
+    }
+
+    function triggerRadarAnimation(key) {
+        if (!radarChartInstance) return;
+        radarChartInstance.data.datasets[1].data = [0,0,0,0,0];
+        radarChartInstance.update('none');
+        setTimeout(() => {
+            radarChartInstance.data.datasets[1].data = chartDataMap[key];
+            radarChartInstance.update();
+        }, 50);
+    }
+
+    let currentCompareKey = 'crane';
+    function selectAnimal(key) {
+        currentCompareKey = key;
+        document.querySelectorAll('.species-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll(`.species-item[data-key="${key}"]`).forEach(el => el.classList.add('active'));
+        const targetImg = document.getElementById('compareTargetImg');
+        const targetName = document.getElementById('compareTargetName');
+        const targetData = realData[key];
+        if (targetImg) {
+            targetImg.src = targetData.img;
+            targetImg.onerror = function() { this.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'%3E%3Ccircle fill=\'%23ccc\' cx=\'40\' cy=\'40\' r=\'35\'/%3E%3C/svg%3E'; };
+        }
+        if (targetName) targetName.innerText = targetData.name;
+        const targetContainer = document.getElementById('compareTargetContainer');
+        if (targetContainer) targetContainer.style.height = getHeightPercentByLength(targetData.height);
+        triggerRadarAnimation(key);
+        updateStatsGrid(key);
+    }
+
+    function switchPanelByAvatar(idx, speciesKey) {
+        const panelItem = document.querySelector('.panel-item');
+        if (panelItem) panelItem.classList.toggle('active', idx === 0);
+        document.querySelectorAll('.species-item').forEach(el => el.classList.remove('active'));
+        if (idx === 1 && speciesKey) {
+            document.querySelectorAll(`.species-item[data-key="${speciesKey}"]`).forEach(el => el.classList.add('active'));
+        }
+        document.querySelectorAll('.view-container').forEach((v, i) => v.classList.toggle('active', i === idx));
+        if (idx === 1 && speciesKey) {
+            selectAnimal(speciesKey);
+        } else if (idx === 0) {
+            updateAnimalHeight();
+            if (radarChartInstance) {
+                radarChartInstance.data.datasets[1].data = chartDataMap.crane;
+                radarChartInstance.update();
+            }
+            updateStatsGrid('crane');
+            setSwanVisualHeight();
+        }
+    }
+
+    let currentFigIndex = 0;
+    function switchPose(index) {
+        const figs = document.querySelectorAll('.swan-figure');
+        currentFigIndex = index;
+        figs.forEach((f, i) => {
+            f.classList.toggle('active', i === index);
+        });
+        document.querySelectorAll('.pose-tab').forEach((btn, i) => btn.classList.toggle('active', i === index));
+    }
+
+    function showCompareDetail() {
+        const dTarget = realData[currentCompareKey];
+        const dSwan = realData.swan;
+        const rows = [
+            { label: '身高', lynx: dSwan.height + ' cm', target: dTarget.height + ' cm' },
+            { label: '体重', lynx: dSwan.weight, target: dTarget.weight },
+            { label: '翼展', lynx: dSwan.wingspan, target: dTarget.wingspan },
+            { label: '尾长', lynx: dSwan.tail, target: dTarget.tail },
+            { label: '寿命', lynx: dSwan.lifespan, target: dTarget.lifespan }
+        ];
+        document.getElementById('modalTitle').innerText = '参数对比';
+        document.getElementById('modalSubtitle').innerText = `${dSwan.name} vs ${dTarget.name}`;
+        document.getElementById('modalText').innerText = '';
+        document.getElementById('modalCompareList').innerHTML = rows.map(r => `
+            <div class="compare-row">
+                <span class="compare-label">${r.label}</span>
+                <span class="compare-lynx">${r.lynx}</span>
+                <span class="compare-vs">VS</span>
+                <span class="compare-target">${r.target}</span>
+            </div>
+        `).join('');
+        document.getElementById('modalContent').classList.add('is-compare');
+        document.getElementById('modalZoom').style.backgroundImage = 'none';
+        document.getElementById('infoModal').classList.add('active');
+    }
+
+    const detailData = {
+        neck: { title: "修长S形颈", text: "天鹅颈部细长，呈优雅的S形曲线，共由23-25块颈椎组成，使其能够灵活潜水觅食，姿态高洁。", img: "bz.png" },
+        bill: { title: "喙部特征", text: "喙部宽大且带有黑色或橙黄色斑块，边缘具锯齿状栉缘，便于滤食水生植物。", img: "zui.png" },
+        wing: { title: "强力翼展", text: "翼展可达2.2-2.8米，飞翔时翅膀有力，是所有水鸟中飞行高度较高的物种之一。", img: "tecm.png" }
+    };
+
+    function showDetail(key) {
+        const d = detailData[key];
+        if (!d) return;
+        document.getElementById('modalContent').classList.remove('is-compare');
+        document.getElementById('modalTitle').innerText = d.title;
+        document.getElementById('modalSubtitle').innerText = '外形细节说明';
+        document.getElementById('modalText').innerText = d.text;
+        document.getElementById('modalCompareList').innerHTML = '';
+        const zoom = document.getElementById('modalZoom');
+        zoom.style.backgroundImage = `url(${d.img})`;
+        zoom.style.backgroundSize = "cover";
+        zoom.style.backgroundPosition = "center";
+        document.getElementById('infoModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('infoModal').classList.remove('active');
+        document.getElementById('modalContent').classList.remove('is-compare');
+    }
+
+    function applyFrameFit() {
+        const app = document.getElementById('app');
+        const isDesktop = window.innerWidth >= 600 && window.innerHeight >= 420;
+        if (isDesktop) {
+            const baseW = 788, baseH = 492;
+            const scale = Math.min(window.innerWidth / baseW, window.innerHeight / baseH);
+            app.style.width = `${baseW}px`;
+            app.style.height = `${baseH}px`;
+            app.style.transform = `scale(${scale})`;
+        } else {
+            app.style.width = `${window.innerWidth}px`;
+            app.style.height = `${window.innerHeight}px`;
+            app.style.transform = 'scale(1)';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        applyFrameFit();
+        initChart();
+        switchPose(0);
+        setSwanVisualHeight();
+        updateAnimalHeight();
+        window.addEventListener('resize', () => { applyFrameFit(); radarChartInstance?.resize(); });
+        switchPanelByAvatar(0);
+        const baseImg = document.getElementById('baseAnimalImg');
+        if (baseImg) baseImg.src = 'tecm.png';
+    });
+</script>
+</body>
+</html>
